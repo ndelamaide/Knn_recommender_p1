@@ -54,6 +54,20 @@ object Baseline extends App {
         f.write(content)
       } finally{ f.close }
   }
+
+
+  val b1_1 = mean(test.map(_.rating).toSeq)
+
+
+  val b1_2 = train.map(_.user).toSeq
+ 
+
+  //val avg_rat_per_user = average_rating_per_user(train)
+
+
+
+
+  
   conf.json.toOption match {
     case None => ; 
     case Some(jsonFile) => {
@@ -64,11 +78,11 @@ object Baseline extends App {
           "3.Measurements" -> ujson.Num(conf.num_measurements())
         ),
         "B.1" -> ujson.Obj(
-          "1.GlobalAvg" -> ujson.Num(0.0), // Datatype of answer: Double
-          "2.User1Avg" -> ujson.Num(0.0),  // Datatype of answer: Double
-          "3.Item1Avg" -> ujson.Num(0.0),   // Datatype of answer: Double
-          "4.Item1AvgDev" -> ujson.Num(0.0), // Datatype of answer: Double
-          "5.PredUser1Item1" -> ujson.Num(0.0) // Datatype of answer: Double
+          "1.GlobalAvg" -> ujson.Num(globalavg(test)), // Datatype of answer: Double
+          "2.User1Avg" -> ujson.Num(user1avg(test)),  // Datatype of answer: Double
+          "3.Item1Avg" -> ujson.Num(item1avg(test)),   // Datatype of answer: Double
+          "4.Item1AvgDev" -> ujson.Num(item1avgdev(test)), // Datatype of answer: Double
+          "5.PredUser1Item1" -> ujson.Num(0) // Datatype of answer: Double
         ),
         "B.2" -> ujson.Obj(
           "1.GlobalAvgMAE" -> ujson.Num(0.0), // Datatype of answer: Double

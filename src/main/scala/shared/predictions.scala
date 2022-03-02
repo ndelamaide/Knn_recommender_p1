@@ -43,4 +43,32 @@ package object predictions
          .map({ case Some(x) => x 
                 case None => Rating(-1, -1, -1)})
   }
+
+  def globalavg(ratings : Array[Rating]) : Double = {
+    return mean(ratings.map(_.rating).toSeq)
+  }
+
+  def user1avg(ratings : Array[Rating]) : Double = {
+    
+    return mean(ratings.filter(x => x.user == 1).map(_.rating))
+  }
+
+  def item1avg(ratings : Array[Rating]) : Double = {
+    return mean(ratings.filter(x => x.item == 1).map(_.rating))
+  }
+
+  def item1avgdev(ratings : Array[Rating]) : Double = {
+    
+    return std(ratings.filter(x => x.item == 1).map(_.rating))
+  }
+
+
+
+  // def scale(rating : org.apache.spark.rdd.RDD[Rating]) : org.apache.spark.rdd.RDD[Rating] = ???
+
+  // def average_rating_per_user(ratings : Array[shared.predictions.Rating]) : Array[shared.predictions.Rating] = ???
+    
+  //   {
+  //   ratings.groupBy(x => x.user).map(x => mean(x))
+  // }
 }
