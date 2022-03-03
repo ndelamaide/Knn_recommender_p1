@@ -48,6 +48,12 @@ object DistributedBaseline extends App {
   }))
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
 
+  val D11 = globalavg_spark(train)
+  val D12 = useravg_spark(train, 1)
+  val D13 = itemavg_spark(train, 1)
+  val D14 = itemavgdev_spark(train, 1)
+  val D15 = userpred_spark(train, 1, 1)
+
   // Save answers as JSON
   def printToFile(content: String, 
                   location: String = "./answers.json") =
@@ -67,11 +73,11 @@ object DistributedBaseline extends App {
           "4.Measurements" -> conf.num_measurements()
         ),
         "D.1" -> ujson.Obj(
-          "1.GlobalAvg" -> ujson.Num(0.0), // Datatype of answer: Double
-          "2.User1Avg" -> ujson.Num(0.0),  // Datatype of answer: Double
-          "3.Item1Avg" -> ujson.Num(0.0),   // Datatype of answer: Double
-          "4.Item1AvgDev" -> ujson.Num(0.0), // Datatype of answer: Double,
-          "5.PredUser1Item1" -> ujson.Num(0.0), // Datatype of answer: Double
+          "1.GlobalAvg" -> ujson.Num(D11), // Datatype of answer: Double
+          "2.User1Avg" -> ujson.Num(D12),  // Datatype of answer: Double
+          "3.Item1Avg" -> ujson.Num(D13),   // Datatype of answer: Double
+          "4.Item1AvgDev" -> ujson.Num(D14), // Datatype of answer: Double,
+          "5.PredUser1Item1" -> ujson.Num(D15), // Datatype of answer: Double
           "6.Mae" -> ujson.Num(0.0) // Datatype of answer: Double
         ),
         "D.2" -> ujson.Obj(
