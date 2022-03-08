@@ -71,14 +71,56 @@ package object predictions
       1
   }
 
-  // Spark implementations below
-  // TODO : NaN values for ml-100k dataset -> Empty table ?
-  // -> Works fine for 25M dataset
-  def globalavg_spark(ratings: RDD[Rating]) : Double = {
-    if (ratings.isEmpty()) {
-      println("Ratings is empty")
-      return 0
+  def globalavg_spark(ratings: RDD[Rating]): Double = {
+    return ratings.map(x => x.rating).mean()
+  }
+
+  def user1avg_spark(ratings: RDD[Rating]): Double = {
+    return globalavg_spark(ratings.filter(x => x.user == 1))
+  }
+
+  def item1avg_spark(ratings: RDD[Rating]): Double = {
+    return globalavg_spark(ratings.filter(x => x.item == 1))
+  }
+
+  def item1avgdev_spark(ratings: RDD[Rating]): Double = {
+    val item1rating_set = ratings.filter(x => (x.item == 1))
+    val usersavg = item1rating_set.map(x => (x.user, (x.rating, 1))).reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2 )).mapValues(v => v._1 / v._2).collect().toMap
+                    //.map(x => x.user).collect().map(x => (x, globalavg_spark(ratings.filter(y => y.user == x)))).toMap
+                    // not same result with commented option
+    
+    item1rating_set.map(x => (x.rating - usersavg(x.user)) / scale(x.rating, usersavg(x.user))).sum() / item1rating_set.count()
+  }
+
+  def user1pred_spark(ratings: RDD[Rating]): Double = {
+    if (ratings.filter(x => x.user == 1).isEmpty()) user1avg_spark(ratings)
+    else {
+      val ru = user1avg_spark(ratings)
+      val ri = item1avgdev_spark(ratings)
+      return ru + ri * scale(ri + ru, ru)
     }
+  }
+
+  def standardize_spark(ratings: RDD[Rating]): RDD[Rating] = {
+
+    val usersavg = ratings.map(x => (x.user, (x.rating, 1))).reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2 )).mapValues(v => v._1 / v._2).collect().toMap
+    
+    return ratings.map(x => Rating(x.user, x.item, (x.rating - usersavg(x.user)) / scale(x.rating, usersavg(x.user))))
+  }
+
+  def pred_spark(ratings: RDD[Rating], ratings_standardized: RDD[Rating], usr: Int, itm: Int): Double = {
+    val user_set = ratings_standardized.filter(x => x.item == itm)
+    val usr_ratings = ratings.filter(x => x.user == usr)
+    val ru = globalavg_spark(usr_ratings)
+    val ri = user_set.map(x => x.rating).mean()
+
+    if (usr_ratings.isEmpty()) globalavg_spark(ratings)
+    else ru + ri * scale((ru + ri), ru)
+  }
+
+  /*
+  def globalavg_spark(ratings: RDD[Rating]) : Double = {
+    if (ratings.isEmpty()) 0
     else ratings.map(x => x.rating).sum() / ratings.count()
   }
 
@@ -90,35 +132,35 @@ package object predictions
     return globalavg_spark(ratings.filter(x => (x.item == itm)))
   }
 
-  def normalizeddev_spark(ratings: RDD[Rating], usr: Double, itm: Double) : Double = {
-    val rui = ratings.filter(x => ((x.user == usr) && (x.item == itm))).first().rating
-    val ru = useravg_spark(ratings, usr)
-
-    return (rui - ru) / scale(rui, ru)
-  }
-
-  def itemavgdev_spark(ratings: RDD[Rating], itm: Double) : Double = {
+  def globalavgdev_spark(ratings: RDD[Rating], itm: Double) : Double = {
+      
       val user_set = ratings.filter(x => (x.item == itm))
 
+      println("Size user set ", user_set.count())
+
+      // Compute ru_bar -> avg rating for each user that has rated item itm
+      val useravgs = user_set.map(x => (x.user, (x.rating, 1))).reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2 ))
+                     .mapValues(v => v._1 / v._2).collect().toMap
+
       if (user_set.isEmpty()) 0
-      // below doesn't work unless use collect then toSeq because of the call to normalizedev inside map
-      // use (key, value) pairs and aggregate after maybe because otherwise very slow on cluster
-      else user_set.collect().toSeq.map(x => normalizeddev_spark(ratings, x.user, x.item)).sum / user_set.count() 
+      else user_set.map(x => (x.rating - useravgs(x.user)) / scale(x.rating, useravgs(x.user))).sum() / user_set.count()
   }
 
   def userpred_spark(ratings: RDD[Rating], usr: Double, itm: Double) : Double = {
     if (ratings.filter(x => (x.user == usr)).isEmpty()) globalavg_spark(ratings)
     else {
       val ru = useravg_spark(ratings, usr)
-      val ri = itemavg_spark(ratings, itm)
+      val ri = globalavgdev_spark(ratings, itm)
+
+      println("ru ", ru, "ri ", ri)
       
       return ru + ri * scale(ru + ri, ru)
     }
   }
 
-  // def average_rating_per_user(ratings : Array[shared.predictions.Rating]) : Array[shared.predictions.Rating] = ???
-    
-  //   {
-  //   ratings.groupBy(x => x.user).map(x => mean(x))
-  // }
+  def MAE_spark(ratings: RDD[Rating], test: RDD[Rating]) : Double = {
+    val preds = ratings.map(x => x.user).distinct().collect()
+    test.map(x=> scala.math.abs(x.rating - userpred_spark(ratings, x.user, x.item))).sum() / test.count()
+  }
+  */
 }

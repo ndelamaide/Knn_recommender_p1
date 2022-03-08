@@ -49,10 +49,11 @@ object DistributedBaseline extends App {
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
 
   val D11 = globalavg_spark(train)
-  val D12 = useravg_spark(train, 1)
-  val D13 = itemavg_spark(train, 1)
-  val D14 = itemavgdev_spark(train, 1)
-  val D15 = userpred_spark(train, 1, 1)
+  val D12 = user1avg_spark(train)
+  val D13 = item1avg_spark(train)
+  val D14 = item1avgdev_spark(train)
+  val D15 = user1pred_spark(train)
+  //val D16 = MAE_spark(train, test)
 
   // Save answers as JSON
   def printToFile(content: String, 
