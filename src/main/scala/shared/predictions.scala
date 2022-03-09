@@ -1,6 +1,7 @@
 package shared
 
 import org.apache.spark.rdd.RDD
+// import org.apache.spark.mllib.evaluation.RegressionMetrics
 
 package object predictions
 {
@@ -46,6 +47,34 @@ package object predictions
                 case None => Rating(-1, -1, -1)})
   }
 
+
+
+  /*----------------------------------------Utils----------------------------------------------------------*/
+
+  def scale(x: Double, useravg: Double): Double = {
+    if (x > useravg)
+      5 - useravg
+    else if (x < useravg)
+      useravg - 1
+    else
+      1
+  }
+
+  def MAE(pred: Array[Rating], test : Array[Rating]): Double = {
+    //val error = (pred.map(_.rating).toSet -- test.map(_.rating).toSet).map(x => Math.abs(x))
+    val errors = 
+      for {
+        p <- pred
+        t <- test
+        val error = Math.abs(p.rating-t.rating)/Math.abs(t.rating)
+      }yield error
+
+    errors.sum
+    
+  }
+
+  /*----------------------------------------Baseline----------------------------------------------------------*/
+  //1
   def globalavg(ratings : Array[Rating]) : Double = {
     return mean(ratings.map(_.rating).toSeq)
   }
@@ -62,15 +91,25 @@ package object predictions
     return std(ratings.filter(x => x.item == 1).map(_.rating))
   }
 
-  def scale(x: Double, useravg: Double): Double = {
-    if (x > useravg)
-      5 - useravg
-    else if (x < useravg)
-      useravg - 1
-    else
-      1
+  def user1_pred_item1(ratings: Array[Rating]): Double = {
+    if (ratings.filter(x => x.user == 1).isEmpty) user1avg(ratings)
+    else {
+      val ru = user1avg(ratings)
+      val ri = item1avgdev(ratings)
+      return ru + ri * scale(ri + ru, ru)
+    }
+  }
+  //2
+  def GlobalPred(ratings: Array[Rating]): Array[Rating] = {
+    ???
   }
 
+  def GlobalAvgMAE(ratings: Array[Rating]): Double = {
+    ???
+  }
+
+
+  /*----------------------------------------Spark----------------------------------------------------------*/
   def globalavg_spark(ratings: RDD[Rating]): Double = {
     return ratings.map(x => x.rating).mean()
   }

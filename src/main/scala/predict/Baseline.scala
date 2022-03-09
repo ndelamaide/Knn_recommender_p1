@@ -56,14 +56,21 @@ object Baseline extends App {
   }
 
 
-  val b1_1 = mean(test.map(_.rating).toSeq)
+  val B11 = globalavg(test)
+  val B12 = user1avg(test)
+  val B13 = item1avg(test)
+  val B14 = item1avgdev(test)
+  val B15 = user1_pred_item1(test)
 
+  val B21 = 0
+  val B22 = 0
+  val B23 = 0
+  val B24 = 0
 
-  val b1_2 = train.map(_.user).toSeq
- 
-
-  //val avg_rat_per_user = average_rating_per_user(train)
-
+  val B31 = 0
+  val B32 = 0
+  val B33 = 0
+  val B34 = 0
 
 
 
@@ -78,17 +85,17 @@ object Baseline extends App {
           "3.Measurements" -> ujson.Num(conf.num_measurements())
         ),
         "B.1" -> ujson.Obj(
-          "1.GlobalAvg" -> ujson.Num(globalavg(test)), // Datatype of answer: Double
-          "2.User1Avg" -> ujson.Num(user1avg(test)),  // Datatype of answer: Double
-          "3.Item1Avg" -> ujson.Num(item1avg(test)),   // Datatype of answer: Double
-          "4.Item1AvgDev" -> ujson.Num(item1avgdev(test)), // Datatype of answer: Double
-          "5.PredUser1Item1" -> ujson.Num(0) // Datatype of answer: Double
+          "1.GlobalAvg" -> ujson.Num(B11), // Datatype of answer: Double
+          "2.User1Avg" -> ujson.Num(B12),  // Datatype of answer: Double
+          "3.Item1Avg" -> ujson.Num(B13),   // Datatype of answer: Double
+          "4.Item1AvgDev" -> ujson.Num(B14), // Datatype of answer: Double
+          "5.PredUser1Item1" -> ujson.Num(B15) // Datatype of answer: Double
         ),
         "B.2" -> ujson.Obj(
-          "1.GlobalAvgMAE" -> ujson.Num(0.0), // Datatype of answer: Double
-          "2.UserAvgMAE" -> ujson.Num(0.0),  // Datatype of answer: Double
-          "3.ItemAvgMAE" -> ujson.Num(0.0),   // Datatype of answer: Double
-          "4.BaselineMAE" -> ujson.Num(0.0)   // Datatype of answer: Double
+          "1.GlobalAvgMAE" -> ujson.Num(B21), // Datatype of answer: Double
+          "2.UserAvgMAE" -> ujson.Num(B22),  // Datatype of answer: Double
+          "3.ItemAvgMAE" -> ujson.Num(B23),   // Datatype of answer: Double
+          "4.BaselineMAE" -> ujson.Num(B24)   // Datatype of answer: Double
         ),
         "B.3" -> ujson.Obj(
           "1.GlobalAvg" -> ujson.Obj(
