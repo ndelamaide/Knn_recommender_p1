@@ -60,11 +60,8 @@ object DistributedBaseline extends App {
   val D12 = predictorUseravg(1, 1) // User 1 average
   val D13 = predictorItemavg(1, 1) // Item 1 average
 
-  val tempD14 = train.filter(x => x.item == 1).collect().map(x => {
-        val uavg = predictorUseravg(x.user, 1)
-        ((x.rating - uavg) / scale(x.rating, uavg), 1)
-      }).reduce((a, b) => (a._1 + b._1, a._2 + b._2))
-  val D14 = if (tempD14._2 == 0) 0 else tempD14._1 / tempD14._2
+  val usersAvg = compute_usersavg_spark(train)
+  val D14 = compute_itemsglobaldev_spark(train, usersAvg)(1)
 
   val D15 = predictorRating(1, 1) // Pred rating for user 1 item 1
   val D16 = MAE_spark(test, predictorRating) //MAE

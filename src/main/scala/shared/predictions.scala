@@ -104,53 +104,69 @@ package object predictions
     ???
   }
   
+  /*----------------------------------------Spark----------------------------------------------------------*/
+
+  /*---------Helpers---------*/
+
+  def standardize(rating: Double, userAvg: Double): Double = {
+      (rating - userAvg) / scale(rating, userAvg)
+  }
+
+  def compute_usersavg_spark(ratings: RDD[Rating]): Map[Int, Double] = {
+    ratings.map(x => (x.user, (x.rating, 1))).reduceByKey((v1, v2) => 
+      (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
+  }
+
+  def compute_itemsavg_spark(ratings: RDD[Rating]): Map[Int, Double] = {
+    ratings.map(x => (x.item, (x.rating, 1))).reduceByKey((v1, v2) => 
+      (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
+  }
+
+  def compute_itemsglobaldev_spark(ratings: RDD[Rating], usersAvg: Map[Int, Double]) : Map[Int, Double] = {
+    ratings.map(x => (x.item, (standardize(x.rating, usersAvg(x.user)), 1))).reduceByKey((v1, v2) =>
+      (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
+  }
+
+  
+  /*---------Predictors---------*/
+
   def predictor_globalavg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
     val globalAvg = ratings.map(x => x.rating).mean()
     (u: Int, i: Int) => globalAvg
   }
-  
-  // Only used to predict user 1 avg
+
   def predictor_useravg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
     
     // Pre-compute global avg
-    //val globalAvg = predictor_globalavg_spark(ratings)
+    val globalAvg = predictor_globalavg_spark(ratings)
     
-    /*
     // Pre-compute users avg
-    val userAvgs = ratings.map(x => x.user).distinct().collect().map(usr => 
-      (usr, ratings.filter(x => x.user == usr).map(x => x.rating).mean())).toMap
+    val usersAvg = compute_usersavg_spark(ratings)
 
-    (u: Int, i: Int) => userAvgs.get(u) match {
+    (u: Int, i: Int) => usersAvg.get(u) match {
       case Some(x) => x
       case None => globalAvg(u, i)
-    } */
-    
-    (u: Int, i: Int) => ratings.filter(x => x.user == u).map(x => x.rating).mean()
+    }
   }
   
-  // Only used to predict item 1 avg
   def predictor_itemavg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
-  /*
+  
     // Pre-compute global avg
     val globalAvg = predictor_globalavg_spark(ratings)
 
     // Pre-compute users avg
-    val userAvgs = ratings.map(x => x.user).distinct().collect().map(usr => 
-      (usr, ratings.filter(x => x.user == usr).map(x => x.rating).mean())).toMap
+    val usersAvg = compute_usersavg_spark(ratings)
 
     // Pre-compute items avg
-    val itemAvgs = ratings.map(x => x.item).distinct().collect().map(itm => 
-      (itm, ratings.filter(x => x.item == itm).map(x => x.rating).mean())).toMap
+    val itemsAvg = compute_itemsavg_spark(ratings)
 
-    (u: Int, i: Int) => itemAvgs.get(i) match {
+    (u: Int, i: Int) => itemsAvg.get(i) match {
       case Some(x) => x
-      case None => userAvgs.get(u) match {
+      case None => usersAvg.get(u) match {
         case Some(x) => x
         case None => globalAvg(u, i)
       }
-    } */
-    
-    (u: Int, i: Int) => ratings.filter(x => x.item == i).map(x => x.rating).mean()
+    }
   }
 
   def predictor_rating_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
@@ -158,18 +174,13 @@ package object predictions
     val globalAvg = predictor_globalavg_spark(ratings)(1,1)
 
     // Pre compute user avgs
-    val predictorUseravg = predictor_useravg_spark(ratings)
-    val userAvgs = ratings.map(x => x.user).distinct().collect().map(usr => (usr, predictorUseravg(usr, 1))).toMap
-
-    // Standardize ratings
-    val ratingsStrandard = ratings.map(x => Rating(x.user, x.item, (x.rating - userAvgs(x.user)) / scale(x.rating, userAvgs(x.user))))
-
-    // Compute global avg deviation of each item
-    val globalAvgDevs = ratings.map(x => x.item).distinct().collect().map(itm => 
-      (itm, ratingsStrandard.filter(x => x.item == itm).map(x => x.rating).mean())).toMap
+    val usersAvg = compute_usersavg_spark(ratings)
+    
+    // Pre compute global avg devs
+    val globalAvgDevs = compute_itemsglobaldev_spark(ratings, usersAvg)
 
     (u: Int, i: Int) =>  {
-      val ru = userAvgs.get(u) match {
+      val ru = usersAvg.get(u) match {
         case Some(x) => x
         case None => globalAvg
       }
