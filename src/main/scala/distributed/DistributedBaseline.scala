@@ -43,17 +43,31 @@ object DistributedBaseline extends App {
   val test = load(spark, conf.test(), conf.separator())
 
   val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    Thread.sleep(1000) // Do everything here from train and test
-    42        // Output answer as last value
-  }))
-  val timings = measurements.map(t => t._2) // Retrieve the timing measurements
 
-  val D11 = globalavg_spark(train)
-  val D12 = user1avg_spark(train)
-  val D13 = item1avg_spark(train)
-  val D14 = item1avgdev_spark(train)
-  val D15 = user1pred_spark(train)
-  //val D16 = MAE_spark(train, test)
+    val predictorRating = predictor_rating_spark(train)
+    MAE_spark(test, predictorRating)
+
+  }))
+
+  val timings = measurements.map(t => t._2) // Retrieve the timing measurements
+  
+  val predictorGlobalavg = predictor_globalavg_spark(train)
+  val predictorUseravg = predictor_useravg_spark(train)
+  val predictorItemavg = predictor_itemavg_spark(train)
+  val predictorRating = predictor_rating_spark(train)
+
+  val D11 = predictorGlobalavg(1, 1) // Global average
+  val D12 = predictorUseravg(1, 1) // User 1 average
+  val D13 = predictorItemavg(1, 1) // Item 1 average
+
+  val tempD14 = train.filter(x => x.item == 1).collect().map(x => {
+        val uavg = predictorUseravg(x.user, 1)
+        ((x.rating - uavg) / scale(x.rating, uavg), 1)
+      }).reduce((a, b) => (a._1 + b._1, a._2 + b._2))
+  val D14 = if (tempD14._2 == 0) 0 else tempD14._1 / tempD14._2
+
+  val D15 = predictorRating(1, 1) // Pred rating for user 1 item 1
+  val D16 = MAE_spark(test, predictorRating) //MAE
 
   // Save answers as JSON
   def printToFile(content: String, 
@@ -79,7 +93,7 @@ object DistributedBaseline extends App {
           "3.Item1Avg" -> ujson.Num(D13),   // Datatype of answer: Double
           "4.Item1AvgDev" -> ujson.Num(D14), // Datatype of answer: Double,
           "5.PredUser1Item1" -> ujson.Num(D15), // Datatype of answer: Double
-          "6.Mae" -> ujson.Num(0.0) // Datatype of answer: Double
+          "6.Mae" -> ujson.Num(D16) // Datatype of answer: Double
         ),
         "D.2" -> ujson.Obj(
           "1.DistributedBaseline" -> ujson.Obj(
