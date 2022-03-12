@@ -75,35 +75,74 @@ package object predictions
 
   /*----------------------------------------Baseline----------------------------------------------------------*/
   //1
-  def globalavg(ratings : Array[Rating]) : Double = {
+ def globalavg(ratings : Array[Rating]) : Double = {
     return mean(ratings.map(_.rating).toSeq)
   }
 
-  def user1avg(ratings : Array[Rating]) : Double = {
-    return mean(ratings.filter(x => x.user == 1).map(_.rating))
+  def user_u_avg(ratings : Array[Rating], user_u : Int) : Double = {
+    if (ratings.filter(x => x.user == user_u).isEmpty)
+      globalavg((ratings))
+    return mean(ratings.filter(x => x.user == user_u).map(_.rating))
   }
 
-  def item1avg(ratings : Array[Rating]) : Double = {
-    return mean(ratings.filter(x => x.item == 1).map(_.rating))
-  }
-
-  def item1avgdev(ratings : Array[Rating]) : Double = {
-    return std(ratings.filter(x => x.item == 1).map(_.rating))
-  }
-
-  def user1_pred_item1(ratings: Array[Rating]): Double = {
-    if (ratings.filter(x => x.user == 1).isEmpty) user1avg(ratings)
-    else {
-      val ru = user1avg(ratings)
-      val ri = item1avgdev(ratings)
-      return ru + ri * scale(ri + ru, ru)
-    }
-  }
-  //2
-  def GlobalPred(ratings: Array[Rating]): Array[Rating] = {
-    ???
-  }
   
+  def item_i_avg(ratings : Array[Rating], item_i : Int) : Double = {
+    mean(ratings.filter(x => x.item == 1).map(_.rating))
+  }
+
+
+  def normalizeddev_all(ratings: Array[Rating]) : Array[Rating] = {
+    ratings.map(x => Rating(x.user, x.item, (x.rating - user_u_avg(ratings, x.user)) /
+       scale(x.rating, user_u_avg(ratings, x.user))))
+  }
+
+  def dev_avg_item_i(ratings: Array[Rating], item_i: Int) : Double = {  // ratings must be normalized
+    mean(ratings.filter(x => x.item == item_i).map(_.rating))
+  }
+
+
+  def predictor_useru_itemi(ratings: Array[Rating]): (Int, Int) => Double = {
+
+    (user_u: Int, item_i: Int) => {
+      if (ratings.filter(x => (x.item == item_i) && (x.user == user_u)).isEmpty) 
+        user_u_avg(ratings, user_u)
+      else {
+        val ru = user_u_avg(ratings, user_u)
+        val ri = dev_avg_item_i(ratings, item_i)
+        ru + ri * scale(ri + ru, ru)
+      }
+    }
+
+  }
+
+  //2
+  // def GlobalPred(ratings: Array[Rating]): Array[Rating] = { 
+  //   val preds = 
+  //     for {
+  //       u <- ratings.map(_.user)
+  //       i <- ratings.map(_.item)
+  //     }yield(Rating(u, i, predictor_useru_itemi(ratings, u, i)))
+  //   preds
+  // }
+
+  def GlobalAvgMAE(test_ratings: Array[Rating], pred: (Int, Int) => Double): Double = {
+    
+    mean(test_ratings.map(x => scala.math.abs(x.rating - pred(x.user, x.item))))
+  }
+
+  def UserAvgMAE(test_ratings: Array[Rating], pred: (Int, Int) => Double): Double = {
+    
+    val groupbyuser = test_ratings.groupBy(_.user)
+    groupbyuser.keys.map(u => 
+      groupbyuser.get(u) match {
+      case Some(x) => mean(x.map(_.rating))
+
+      case None => 
+    }  
+    )
+
+    mean(test_ratings.map(x => scala.math.abs(x.rating - pred(x.user, x.item))))
+  }
   /*----------------------------------------Spark----------------------------------------------------------*/
 
   /*---------Helpers---------*/

@@ -56,13 +56,17 @@ object Baseline extends App {
   }
 
 
-  val B11 = globalavg(test)
-  val B12 = user1avg(test)
-  val B13 = item1avg(test)
-  val B14 = item1avgdev(test)
-  val B15 = user1_pred_item1(test)
 
-  val B21 = 0
+
+  val B11 = globalavg(train)
+  val B12 = user_u_avg(train, 1)
+  val B13 = item_i_avg(train, 1) 
+
+  val train_normalized = normalizeddev_all(train)
+  val B14 = dev_avg_item_i(train_normalized, 1)
+  val B15 = predictor_useru_itemi(train)(1, 1)
+
+  val B21 = GlobalAvgMAE(test, predictor_useru_itemi(train))
   val B22 = 0
   val B23 = 0
   val B24 = 0
@@ -116,7 +120,6 @@ object Baseline extends App {
           )
         )
       )
-
       val json = ujson.write(answers, 4)
       println(json)
       println("Saving answers in: " + jsonFile)
