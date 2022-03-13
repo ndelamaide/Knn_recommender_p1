@@ -9,6 +9,7 @@ import org.apache.log4j.Level
 
 import scala.math
 import shared.predictions._
+import org.spark_project.jetty.server.Authentication.User
 
 
 class Conf(arguments: Seq[String]) extends ScallopConf(arguments) {
@@ -56,27 +57,36 @@ object Baseline extends App {
   }
 
 
+  var GlobalAvg= globalavg(train)
 
+  
 
-  val B11 = globalavg(train)
-  val B12 = user_u_avg(train, 1)
-  val B13 = item_i_avg(train, 1) 
+  val B11 = GlobalAvg
+  val B12 = predictor_user_avg(train)(1, -1)
+  val B13 = predictor_item_avg(train)(-1, 1)
 
   val train_normalized = normalizeddev_all(train)
   val B14 = dev_avg_item_i(train_normalized, 1)
   val B15 = predictor_useru_itemi(train)(1, 1)
 
-  val B21 = GlobalAvgMAE(test, predictor_useru_itemi(train))
-  val B22 = 0
-  val B23 = 0
-  val B24 = 0
+  val t20 = System.nanoTime()
+  val B21 = Global_Avg_MAE(test, train)
+  val t21 = System.nanoTime()
+  val B22 = User_Avg_MAE(test, train)
+  val t22 = System.nanoTime()
+  val B23 = Item_Avg_MAE(test, train)
+  val t23 = System.nanoTime()
+  val B24 = Baseline_Avg_MAE(test, train)
+  val t24 = System.nanoTime()
+
+
 
   val B31 = 0
   val B32 = 0
   val B33 = 0
   val B34 = 0
 
-
+  val NanotoMs = Math.pow(10,-6)
 
   
   conf.json.toOption match {
@@ -103,19 +113,19 @@ object Baseline extends App {
         ),
         "B.3" -> ujson.Obj(
           "1.GlobalAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num(mean(timings)), // Datatype of answer: Double
+            "average (ms)" -> ujson.Num((t21-t20)*NanotoMs), // Datatype of answer: Double
             "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
           ),
           "2.UserAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num(mean(timings)), // Datatype of answer: Double
+            "average (ms)" -> ujson.Num((t22-t21)*NanotoMs), // Datatype of answer: Double
             "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
           ),
           "3.ItemAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num(mean(timings)), // Datatype of answer: Double
+            "average (ms)" -> ujson.Num((t23-t22)*NanotoMs), // Datatype of answer: Double
             "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
           ),
           "4.Baseline" -> ujson.Obj(
-            "average (ms)" -> ujson.Num(mean(timings)), // Datatype of answer: Double
+            "average (ms)" -> ujson.Num((t24-t23)*NanotoMs), // Datatype of answer: Double
             "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
           )
         )

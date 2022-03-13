@@ -79,21 +79,28 @@ package object predictions
     return mean(ratings.map(_.rating).toSeq)
   }
 
-  def user_u_avg(ratings : Array[Rating], user_u : Int) : Double = {
-    if (ratings.filter(x => x.user == user_u).isEmpty)
-      globalavg((ratings))
-    return mean(ratings.filter(x => x.user == user_u).map(_.rating))
+  def predictor_user_avg(ratings : Array[Rating]): (Int, Int) => Double = {
+    (user_u: Int, item_i: Int) => 
+      if (ratings.filter(x => x.user == user_u).isEmpty)
+          globalavg((ratings))
+        mean(ratings.filter(x => x.user == user_u).map(_.rating))
   }
 
+  // def user_u_avg(ratings : Array[Rating], user_u : Int) : Double = {
+  //   if (ratings.filter(x => x.user == user_u).isEmpty)
+  //     globalavg((ratings))
+  //   return mean(ratings.filter(x => x.user == user_u).map(_.rating))
+  // }
   
-  def item_i_avg(ratings : Array[Rating], item_i : Int) : Double = {
-    mean(ratings.filter(x => x.item == 1).map(_.rating))
+  def predictor_item_avg(ratings : Array[Rating]): (Int, Int) => Double = {
+    (user_u: Int, item_i: Int) => 
+      mean(ratings.filter(x => x.item == 1).map(_.rating))
   }
 
 
   def normalizeddev_all(ratings: Array[Rating]) : Array[Rating] = {
-    ratings.map(x => Rating(x.user, x.item, (x.rating - user_u_avg(ratings, x.user)) /
-       scale(x.rating, user_u_avg(ratings, x.user))))
+    ratings.map(x => Rating(x.user, x.item, (x.rating - predictor_user_avg(ratings)(x.user, x.item)) /
+       scale(x.rating, predictor_user_avg(ratings)(x.user, x.item))))
   }
 
   def dev_avg_item_i(ratings: Array[Rating], item_i: Int) : Double = {  // ratings must be normalized
@@ -105,9 +112,9 @@ package object predictions
 
     (user_u: Int, item_i: Int) => {
       if (ratings.filter(x => (x.item == item_i) && (x.user == user_u)).isEmpty) 
-        user_u_avg(ratings, user_u)
+        predictor_user_avg(ratings)(user_u, item_i)
       else {
-        val ru = user_u_avg(ratings, user_u)
+        val ru = predictor_user_avg(ratings)(user_u, item_i)
         val ri = dev_avg_item_i(ratings, item_i)
         ru + ri * scale(ri + ru, ru)
       }
@@ -125,23 +132,59 @@ package object predictions
   //   preds
   // }
 
-  def GlobalAvgMAE(test_ratings: Array[Rating], pred: (Int, Int) => Double): Double = {
+  def Global_Avg_MAE(test_ratings: Array[Rating], train_ratings: Array[Rating]): Double = {
     
+    val pred = predictor_useru_itemi(train_ratings)
     mean(test_ratings.map(x => scala.math.abs(x.rating - pred(x.user, x.item))))
   }
 
-  def UserAvgMAE(test_ratings: Array[Rating], pred: (Int, Int) => Double): Double = {
+  // def User_Avg_MAE(test_ratings: Array[Rating], pred: (Int, Int) => Double, GlobalAvg: Double): Double = {
     
+
+
+  //   val groupbyuser = test_ratings.groupBy(_.user)
+  //   groupbyuser.keys.map(u => 
+  //   )
+  // }
+  def User_Avg_MAE(test_ratings: Array[Rating], train_ratings: Array[Rating]): Double = {
+    
+
+    val GlobalAvg = globalavg(train_ratings)
+    val pred = predictor_useru_itemi(train_ratings)
     val groupbyuser = test_ratings.groupBy(_.user)
-    groupbyuser.keys.map(u => 
+    val diff = groupbyuser.keys.map(u => 
       groupbyuser.get(u) match {
-      case Some(x) => mean(x.map(_.rating))
+      case Some(x) => 
+        mean(x.map(y => math.abs(y.rating - pred(y.user, y.item))))
+        
 
-      case None => 
-    }  
+      case None => GlobalAvg
+      }  
     )
+    mean(diff.toSeq)
+  }
 
-    mean(test_ratings.map(x => scala.math.abs(x.rating - pred(x.user, x.item))))
+  def Item_Avg_MAE(test_ratings: Array[Rating], train_ratings: Array[Rating]): Double = {
+    
+    val GlobalAvg = globalavg(train_ratings)
+    val pred = predictor_useru_itemi(train_ratings)
+    val groupbyuser = test_ratings.groupBy(_.item)
+    val diff = groupbyuser.keys.map(i => 
+      groupbyuser.get(i) match {
+      case Some(x) => 
+        mean(x.map(y => math.abs(y.rating - pred(y.user, y.item))))
+        
+
+      case None => GlobalAvg
+      }  
+    )
+    mean(diff.toSeq)
+  }
+
+  def Baseline_Avg_MAE(test_ratings: Array[Rating], train_ratings: Array[Rating]): Double = {
+
+    val pred = predictor_useru_itemi(train_ratings)
+    mean(test_ratings.map(t => Math.abs(t.rating - pred(t.user, t.item)))) 
   }
   /*----------------------------------------Spark----------------------------------------------------------*/
 
