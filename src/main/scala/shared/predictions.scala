@@ -194,6 +194,11 @@ package object predictions
     val pred = predictor_useru_itemi(train_ratings)
     mean(test_ratings.map(t => Math.abs(t.rating - pred(t.user, t.item)))) 
   }
+
+  def MAE(test_ratings: Array[Rating], predictor: (Int, Int) => Double): Double = {
+      mean(test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))))
+  }
+
   /*----------------------------------------Spark----------------------------------------------------------*/
 
   /*---------Helpers---------*/
