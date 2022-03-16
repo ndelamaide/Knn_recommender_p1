@@ -77,6 +77,10 @@ package object predictions
       ratings.map(x => (x.user, x.rating)).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
    }
 
+   def standardizeRatings(ratings: Array[Rating], users_avg: Map[Int, Double]): Array[Rating] = {
+     ratings.map(x => Rating(x.user, x.item, standardize(x.rating, users_avg(x.user))))
+   }
+
   /*----------------------------------------Baseline----------------------------------------------------------*/
   //1
  def globalavg(ratings : Array[Rating]) : Double = {
@@ -217,7 +221,7 @@ package object predictions
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
 
-  def computeItemsGlobaDev(ratings: RDD[Rating], users_avg: Map[Int, Double]) : Map[Int, Double] = {
+  def computeItemsGlobalDev(ratings: RDD[Rating], users_avg: Map[Int, Double]) : Map[Int, Double] = {
     ratings.map(x => (x.item, (standardize(x.rating, users_avg(x.user)), 1))).reduceByKey((v1, v2) =>
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
@@ -272,7 +276,7 @@ package object predictions
     val users_avg = computeUsersAvg(ratings)
     
     // Pre compute global avg devs
-    val globalAvgDevs = computeItemsGlobaDev(ratings, users_avg)
+    val globalAvgDevs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
       val ru = users_avg.get(u) match {
@@ -381,18 +385,47 @@ package object predictions
     arr.toMap // Key : (user, item) , Value : weighted dev
   }
 
+  def predictorUniform(ratings: Array[Rating]): (Int, Int) => Double = {
+
+    val global_avg = globalavg(ratings)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val standardized_ratings = standardizeRatings(ratings, users_avg)
+
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+
+    val uniform_sum_devs = preprocessed_ratings.groupBy(_.item).mapValues(x => x.foldLeft(0.0)((sum, rating) => sum + rating.rating) / x.length)
+
+    
+    (u: Int, i: Int) =>  {
+      val ru = users_avg.get(u) match {
+        case Some(x) => x
+        case None => global_avg
+      }
+      val ri = uniform_sum_devs.get(i) match {
+        case Some(x) => x
+        case None => 0.0
+      }
+
+      ru + ri * scale(ru + ri, ru)
+    }
+  }
+
   def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
 
-    val preprocessed_ratings =  preprocessRatings(normalizeddev_all(ratings))
+    val global_avg = globalavg(ratings)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val standardized_ratings = standardizeRatings(ratings, users_avg)
+
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
     val user_set = ratings.map(x => x.user).distinct
     val item_set = ratings.map(x => x.item).distinct
 
     val weigthed_sum_devs = computeWeightedSumDevs(preprocessed_ratings, user_set, item_set)
-
-    val users_avg = computeUsersAvg(ratings)
-
-    val global_avg = globalavg(ratings)
 
     (u: Int, i: Int) =>  {
       val ru = users_avg.get(u) match {

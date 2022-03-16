@@ -40,8 +40,11 @@ object Personalized extends App {
   val test = load(spark, conf.test(), conf.separator()).collect()
   
   // Compute here
-  val P11 = 0
-  val P12 = 0
+  val predictor_uniform = predictorUniform(train)
+  val predictor_cosine = predictorCosine(train)
+
+  val P11 = predictor_uniform(1, 1)
+  val P12 = MAE(test, predictor_uniform)
 
   val P21 = 0
   val P22 = 0
