@@ -278,4 +278,59 @@ package object predictions
   def MAE_spark(test_ratings: RDD[Rating], predictor: (Int, Int) => Double): Double = {
       test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))).mean()
   }
+
+
+  /*----------------------------------------Personalized----------------------------------------------------------*/
+
+  // def preprocess_ratings(normalized_ratings: Array[Rating]): Array[Rating] = {
+
+  //   val groupbyuser = normalized_ratings.groupBy(_.user)
+
+  //   normalized_ratings.map(x => Rating(x.user, x.item, 
+  //     x.rating/Math.sqrt(groupbyuser.get(x.user) match{
+  //       case Some(x_user) => x_user.map(user_rating => Math.pow(user_rating.rating, 2)).sum
+  //       case None => 0
+  //     })))
+  // }
+
+  // def similarity_u_v(prep_ratings: Array[Rating], u: Int, v: Int): Double = {
+
+  //   val prep_ratings_gb = prep_ratings.groupBy(_.user)
+  //   val prep_ratings_u = prep_ratings_gb.getOrElse(u, 0) //Any becasue Rating or Int
+  //   val prep_ratings_v = prep_ratings_gb.getOrElse(v, 0)
+
+  //   prep_ratings_u.filter(r => prep_ratings_v.map(_.item).contains(r.item)).map(u => 
+  //     u.rating * prep_ratings_v.filter(v => v.item == u.item).rating)
+  // }
+
+  // def weighted_dev_avg_item_i(normalized_ratings: Array[Rating], item_i: Int): Array[Rating] = {
+  //   val groupbyuser = normalized_ratings.groupBy(_.item)
+  //   val prepRating = preprocess_ratings(normalized_ratings)
+
+  //   normalized_ratings.map(x => Rating(x.user, x.item, 
+  //     groupbyuser.get(x.item) match {
+  //       case Some(x_item) => x_item.map(item_rating => item_rating.rating * 
+  //         mean(prepRating.filter(y => y.user == x_item.map(_.user) && y.item == x_item.map(_.item)).map(_.rating))
+  //       ).sum / x_item.map(item_rating => Math.abs(prepRating.filter(y => y.user == x_item.map(_.user) && y.item == x_item.map(_.item))))
+
+  //       case None => 0 
+  //     }
+  //   ))
+  // }
+
+  // def predictor_useru_itemi_personalized(ratings: Array[Rating]): (Int, Int) => Double = {
+
+  //   (user_u: Int, item_i: Int) => {
+  //     if (ratings.filter(x => (x.item == item_i) && (x.user == user_u)).isEmpty) 
+  //       predictor_user_avg(ratings)(user_u, item_i)
+  //     else {
+  //       val ru = predictor_user_avg(ratings)(user_u, item_i)
+  //       val ri = dev_avg_item_i(ratings, item_i)
+  //       ru + ri * scale(ri + ru, ru)
+  //     }
+  //   }
+
+  // }
+
+
 }

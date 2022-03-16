@@ -40,7 +40,16 @@ object Personalized extends App {
   val test = load(spark, conf.test(), conf.separator()).collect()
   
   // Compute here
+  val P11 = 0
+  val P12 = 0
 
+  val P21 = 0
+  val P22 = 0
+  val P23 = 0
+
+  val P31 = 0
+  val P32 = 0
+  val P33 = 0  
   // Save answers as JSON
   def printToFile(content: String, 
                   location: String = "./answers.json") =
@@ -59,18 +68,18 @@ object Personalized extends App {
           "3.Measurements" -> ujson.Num(conf.num_measurements())
         ),
         "P.1" -> ujson.Obj(
-          "1.PredUser1Item1" -> ujson.Num(0.0), // Prediction of item 1 for user 1 (similarity 1 between users)
-          "2.OnesMAE" -> ujson.Num(0.0)         // MAE when using similarities of 1 between all users
+          "1.PredUser1Item1" -> ujson.Num(P11), // Prediction of item 1 for user 1 (similarity 1 between users)
+          "2.OnesMAE" -> ujson.Num(P12)         // MAE when using similarities of 1 between all users
         ),
         "P.2" -> ujson.Obj(
-          "1.AdjustedCosineUser1User2" -> ujson.Num(0.0), // Similarity between user 1 and user 2 (adjusted Cosine)
-          "2.PredUser1Item1" -> ujson.Num(0.0),  // Prediction item 1 for user 1 (adjusted cosine)
-          "3.AdjustedCosineMAE" -> ujson.Num(0.0) // MAE when using adjusted cosine similarity
+          "1.AdjustedCosineUser1User2" -> ujson.Num(P21), // Similarity between user 1 and user 2 (adjusted Cosine)
+          "2.PredUser1Item1" -> ujson.Num(P22),  // Prediction item 1 for user 1 (adjusted cosine)
+          "3.AdjustedCosineMAE" -> ujson.Num(P23) // MAE when using adjusted cosine similarity
         ),
         "P.3" -> ujson.Obj(
-          "1.JaccardUser1User2" -> ujson.Num(0.0), // Similarity between user 1 and user 2 (jaccard similarity)
-          "2.PredUser1Item1" -> ujson.Num(0.0),  // Prediction item 1 for user 1 (jaccard)
-          "3.JaccardPersonalizedMAE" -> ujson.Num(0.0) // MAE when using jaccard similarity
+          "1.JaccardUser1User2" -> ujson.Num(P31), // Similarity between user 1 and user 2 (jaccard similarity)
+          "2.PredUser1Item1" -> ujson.Num(P32),  // Prediction item 1 for user 1 (jaccard)
+          "3.JaccardPersonalizedMAE" -> ujson.Num(P33) // MAE when using jaccard similarity
         )
       )
       val json = write(answers, 4)
