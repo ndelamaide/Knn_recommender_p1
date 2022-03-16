@@ -73,6 +73,10 @@ package object predictions
     
   }
 
+   def computeUsersAvg(ratings: Array[Rating]): Map[Int, Double] = {
+      ratings.map(x => (x.user, x.rating)).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
+   }
+
   /*----------------------------------------Baseline----------------------------------------------------------*/
   //1
  def globalavg(ratings : Array[Rating]) : Double = {
@@ -80,10 +84,14 @@ package object predictions
   }
 
   def predictor_user_avg(ratings : Array[Rating]): (Int, Int) => Double = {
-    (user_u: Int, item_i: Int) => 
-      if (ratings.filter(x => x.user == user_u).isEmpty)
-          globalavg((ratings))
-        mean(ratings.filter(x => x.user == user_u).map(_.rating))
+    
+    val global_avg = globalavg(ratings)
+    val users_avg = computeUsersAvg(ratings)
+
+    (user_u: Int, item_i: Int) => users_avg.get(user_u) match {
+      case Some(x) => x
+      case None => global_avg
+    }
   }
 
   // def user_u_avg(ratings : Array[Rating], user_u : Int) : Double = {
@@ -194,77 +202,77 @@ package object predictions
       (rating - userAvg) / scale(rating, userAvg)
   }
 
-  def compute_usersavg_spark(ratings: RDD[Rating]): Map[Int, Double] = {
+  def computeUsersAvg(ratings: RDD[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.user, (x.rating, 1))).reduceByKey((v1, v2) => 
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
 
-  def compute_itemsavg_spark(ratings: RDD[Rating]): Map[Int, Double] = {
+  def computeItemsAvg(ratings: RDD[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.item, (x.rating, 1))).reduceByKey((v1, v2) => 
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
 
-  def compute_itemsglobaldev_spark(ratings: RDD[Rating], usersAvg: Map[Int, Double]) : Map[Int, Double] = {
-    ratings.map(x => (x.item, (standardize(x.rating, usersAvg(x.user)), 1))).reduceByKey((v1, v2) =>
+  def computeItemsGlobaDev(ratings: RDD[Rating], users_avg: Map[Int, Double]) : Map[Int, Double] = {
+    ratings.map(x => (x.item, (standardize(x.rating, users_avg(x.user)), 1))).reduceByKey((v1, v2) =>
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
 
   
   /*---------Predictors---------*/
 
-  def predictor_globalavg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
-    val globalAvg = ratings.map(x => x.rating).mean()
-    (u: Int, i: Int) => globalAvg
+  def predictorGlobalAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
+    val global_avg = ratings.map(x => x.rating).mean()
+    (u: Int, i: Int) => global_avg
   }
 
-  def predictor_useravg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
+  def predictorUserAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
     
     // Pre-compute global avg
-    val globalAvg = predictor_globalavg_spark(ratings)
+    val global_avg = predictorGlobalAvg(ratings)
     
     // Pre-compute users avg
-    val usersAvg = compute_usersavg_spark(ratings)
+    val users_avg = computeUsersAvg(ratings)
 
-    (u: Int, i: Int) => usersAvg.get(u) match {
+    (u: Int, i: Int) => users_avg.get(u) match {
       case Some(x) => x
-      case None => globalAvg(u, i)
+      case None => global_avg(u, i)
     }
   }
   
-  def predictor_itemavg_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
+  def predictorItemAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
   
     // Pre-compute global avg
-    val globalAvg = predictor_globalavg_spark(ratings)
+    val global_avg = predictorGlobalAvg(ratings)(1, 1)
 
     // Pre-compute users avg
-    val usersAvg = compute_usersavg_spark(ratings)
+    val users_avg = computeUsersAvg(ratings)
 
     // Pre-compute items avg
-    val itemsAvg = compute_itemsavg_spark(ratings)
+    val itemsAvg = computeItemsAvg(ratings)
 
     (u: Int, i: Int) => itemsAvg.get(i) match {
       case Some(x) => x
-      case None => usersAvg.get(u) match {
+      case None => users_avg.get(u) match {
         case Some(x) => x
-        case None => globalAvg(u, i)
+        case None => global_avg
       }
     }
   }
 
-  def predictor_rating_spark(ratings: RDD[Rating]): (Int, Int) => Double = {
+  def predictorRating(ratings: RDD[Rating]): (Int, Int) => Double = {
 
-    val globalAvg = predictor_globalavg_spark(ratings)(1,1)
+    val global_avg = predictorGlobalAvg(ratings)(1,1)
 
     // Pre compute user avgs
-    val usersAvg = compute_usersavg_spark(ratings)
+    val users_avg = computeUsersAvg(ratings)
     
     // Pre compute global avg devs
-    val globalAvgDevs = compute_itemsglobaldev_spark(ratings, usersAvg)
+    val globalAvgDevs = computeItemsGlobaDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
-      val ru = usersAvg.get(u) match {
+      val ru = users_avg.get(u) match {
         case Some(x) => x
-        case None => globalAvg
+        case None => global_avg
       }
       val ri = globalAvgDevs.get(i) match {
         case Some(x) => x
@@ -275,7 +283,7 @@ package object predictions
     }
   }
   
-  def MAE_spark(test_ratings: RDD[Rating], predictor: (Int, Int) => Double): Double = {
+  def MAE(test_ratings: RDD[Rating], predictor: (Int, Int) => Double): Double = {
       test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))).mean()
   }
 
@@ -331,6 +339,69 @@ package object predictions
   //   }
 
   // }
+
+  def preprocessRatings(standardized_ratings: Array[Rating]): Array[Rating] = {
+
+    // Compute sum of square of devs for each user
+    val squared_sum_users = standardized_ratings.groupBy(_.user).mapValues(x => x.foldLeft(0.0)((sum, rating) => sum + scala.math.pow(rating.rating, 2)))
+
+    standardized_ratings.map(x => Rating(x.user, x.item, x.rating / scala.math.sqrt(squared_sum_users(x.user))))
+  }
+
+  def adjustedCosine(preprocessed_ratings: Array[Rating], u: Int, v: Int): Double = {
+    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length > 1).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+  }
+
+  def weightedSumDev(preprocessed_ratings: Array[Rating], u: Int, i: Int): Double = {
+
+    val user_set_ratings =  preprocessed_ratings.filter(x => x.item == i).map(x => (x.user, x.rating)).toMap
+    val similarities = user_set_ratings.keys.map(x => {
+      if (x == u) (x, 0.0)
+      else (x, adjustedCosine(preprocessed_ratings, u, x))
+    }).filter(x => x._2 != 0).toMap
+
+    val numerator = if (similarities.isEmpty) 0 else similarities.map(x => x._2 * user_set_ratings(x._1)).sum
+    val denominator = if (similarities.isEmpty) 0 else similarities.map(x => scala.math.abs(x._2)).sum
+
+    if (denominator == 0) 0
+    else numerator / denominator
+  }
+
+  def computeWeightedSumDevs(preprocessed_ratings: Array[Rating], users: Array[Int], items: Array[Int]): Map[(Int, Int), Double] = {
+    val arr = for {
+      u <- users
+      i <- items
+    } yield ((u, i), weightedSumDev(preprocessed_ratings, u, i))
+
+    arr.toMap // Key : (user, item) , Value : weighted dev
+  }
+
+  def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
+
+    val preprocessed_ratings =  preprocessRatings(normalizeddev_all(ratings))
+
+    val user_set = ratings.map(x => x.user).distinct
+    val item_set = ratings.map(x => x.item).distinct
+
+    val weigthed_sum_devs = computeWeightedSumDevs(preprocessed_ratings, user_set, item_set)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val global_avg = globalavg(ratings)
+
+    (u: Int, i: Int) =>  {
+      val ru = users_avg.get(u) match {
+        case Some(x) => x
+        case None => global_avg
+      }
+      val ri = weigthed_sum_devs.get((u, i)) match {
+        case Some(x) => x
+        case None => 0.0
+      }
+
+      ru + ri * scale(ru + ri, ru)
+    }
+  }
 
 
 }

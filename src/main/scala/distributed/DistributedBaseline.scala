@@ -44,27 +44,27 @@ object DistributedBaseline extends App {
 
   val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
 
-    val predictorRating = predictor_rating_spark(train)
-    MAE_spark(test, predictorRating)
+    val predictor_rating = predictorRating(train)
+    MAE(test, predictor_rating)
 
   }))
 
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
   
-  val predictorGlobalavg = predictor_globalavg_spark(train)
-  val predictorUseravg = predictor_useravg_spark(train)
-  val predictorItemavg = predictor_itemavg_spark(train)
-  val predictorRating = predictor_rating_spark(train)
+  val predictor_global_avg = predictorGlobalAvg(train)
+  val predictor_user_avg = predictorUserAvg(train)
+  val predictor_item_avg = predictorItemAvg(train)
+  val predictor_rating = predictorRating(train)
 
-  val D11 = predictorGlobalavg(1, 1) // Global average
-  val D12 = predictorUseravg(1, 1) // User 1 average
-  val D13 = predictorItemavg(1, 1) // Item 1 average
+  val D11 = predictor_global_avg(1, 1) // Global average
+  val D12 = predictor_user_avg(1, 1) // User 1 average
+  val D13 = predictor_item_avg(1, 1) // Item 1 average
 
-  val usersAvg = compute_usersavg_spark(train)
-  val D14 = compute_itemsglobaldev_spark(train, usersAvg)(1)
+  val users_avg = computeUsersAvg(train)
+  val D14 = computeItemsGlobaDev(train, users_avg)(1)
 
-  val D15 = predictorRating(1, 1) // Pred rating for user 1 item 1
-  val D16 = MAE_spark(test, predictorRating) //MAE
+  val D15 = predictor_rating(1, 1) // Pred rating for user 1 item 1
+  val D16 = MAE(test, predictor_rating) //MAE
 
   // Save answers as JSON
   def printToFile(content: String, 
