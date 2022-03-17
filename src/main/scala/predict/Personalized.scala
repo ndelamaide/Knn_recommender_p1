@@ -41,14 +41,25 @@ object Personalized extends App {
   
   // Compute here
   val predictor_uniform = predictorUniform(train)
+
+  println("Predictor uniform finished")
+
   val predictor_cosine = predictorCosine(train)
+
+  println("Predictor cosine finished")
+
+  
 
   val P11 = predictor_uniform(1, 1)
   val P12 = MAE(test, predictor_uniform)
 
-  val P21 = 0
-  val P22 = 0
-  val P23 = 0
+  val users_avg = computeUsersAvg(train)
+  val standardized_ratings = standardizeRatings(train, users_avg)
+  val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+
+  val P21 = adjustedCosine(preprocessed_ratings, 1, 2)
+  val P22 = 0//predictor_cosine(1, 1)
+  val P23 = 0//MAE(test, predictor_cosine)
 
   val P31 = 0
   val P32 = 0

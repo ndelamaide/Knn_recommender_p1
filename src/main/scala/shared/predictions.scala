@@ -397,7 +397,6 @@ package object predictions
 
     val uniform_sum_devs = preprocessed_ratings.groupBy(_.item).mapValues(x => x.foldLeft(0.0)((sum, rating) => sum + rating.rating) / x.length)
 
-    
     (u: Int, i: Int) =>  {
       val ru = users_avg.get(u) match {
         case Some(x) => x
@@ -425,6 +424,7 @@ package object predictions
     val user_set = ratings.map(x => x.user).distinct
     val item_set = ratings.map(x => x.item).distinct
 
+    println("Computing weighted sum devs")
     val weigthed_sum_devs = computeWeightedSumDevs(preprocessed_ratings, user_set, item_set)
 
     (u: Int, i: Int) =>  {
