@@ -41,11 +41,30 @@ object Baseline extends App {
   println("Loading test data from: " + conf.test()) 
   val test = load(spark, conf.test(), conf.separator()).collect()
 
-  val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    Thread.sleep(1000) // Do everything here from train and test
-    42        // Output answer as last value
+  val MeasurementsGlobalAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    val predGA = predictorGlobalAvg(train)
+    MAE(test, predGA)
+    
   }))
-  val timings = measurements.map(t => t._2) // Retrieve the timing measurements
+  val MeasurementsUserAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    val predUA = predictorUserAvg(train)
+    MAE(test, predUA)
+  }))
+  val MeasurementsItemAvgMae= (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    val predIA = predictorItemAvg(train)
+    MAE(test, predIA)
+  }))
+  val MeasurementsBaselineMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    val predBa = predictorRating(train)
+    MAE(test, predBa)
+  }))
+  val timingsGlobalAvgMae = MeasurementsGlobalAvgMae.map(t => t._2) // Retrieve the timing measurements
+  val timingsUserAvgMae = MeasurementsUserAvgMae.map(t => t._2) // Retrieve the timing measurements
+  val timingsItemAvgMae = MeasurementsItemAvgMae.map(t => t._2) // Retrieve the timing measurements
+  val timingsBaselineMae = MeasurementsBaselineMae.map(t => t._2) // Retrieve the timing measurements
+
+
+
 
   // Save answers as JSON
   def printToFile(content: String, 
@@ -57,36 +76,33 @@ object Baseline extends App {
   }
 
 
-  var GlobalAvg= globalavg(train)
+  var GlobalAvg= predictorGlobalAvg(train)
 
   
 
-  val B11 = GlobalAvg
-  val B12 = predictor_user_avg(train)(1, -1)
-  val B13 = predictor_item_avg(train)(-1, 1)
+  val B11 = predictorGlobalAvg(train)(-1, -1)
+  val B12 = predictorUserAvg(train)(1, -1)
+  val B13 = predictorItemAvg(train)(-1, 1)
 
-  val train_normalized = normalizeddev_all(train)
-  val B14 = dev_avg_item_i(train_normalized, 1)
-  val B15 = predictor_useru_itemi(train)(1, 1)
+  val users_avg = computeUsersAvg(train)
 
-  val t20 = System.nanoTime()
-  val B21 = Global_Avg_MAE(test, train)
-  val t21 = System.nanoTime()
-  val B22 = User_Avg_MAE(test, train)
-  val t22 = System.nanoTime()
-  val B23 = Item_Avg_MAE(test, train)
-  val t23 = System.nanoTime()
-  val B24 = Baseline_Avg_MAE(test, train)
-  val t24 = System.nanoTime()
+  val standardized_ratings = standardizeRatings(train, users_avg)
+  val items_global_dev = computeItemsGlobalDev(train, users_avg)
 
+  val B14 = items_global_dev(1)
+  val B15 = predictorRating(train)(1, 1)
 
+  val predGA = predictorGlobalAvg(train)
+  val B21 = MAE(test, predGA)
 
-  val B31 = 0
-  val B32 = 0
-  val B33 = 0
-  val B34 = 0
+  val predUA = predictorUserAvg(train)
+  val B22 = MAE(test, predUA)
 
-  val NanotoMs = Math.pow(10,-6)
+  val predIA = predictorItemAvg(train)
+  val B23 = MAE(test, predIA)
+
+  val predBa = predictorRating(train)
+  val B24 =  MAE(test, predBa)
 
   
   conf.json.toOption match {
@@ -113,20 +129,20 @@ object Baseline extends App {
         ),
         "B.3" -> ujson.Obj(
           "1.GlobalAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num((t21-t20)*NanotoMs), // Datatype of answer: Double
-            "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
+            "average (ms)" -> ujson.Num(mean(timingsGlobalAvgMae)), // Datatype of answer: Double
+            "stddev (ms)" -> ujson.Num(std(timingsGlobalAvgMae)) // Datatype of answer: Double
           ),
           "2.UserAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num((t22-t21)*NanotoMs), // Datatype of answer: Double
-            "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
+            "average (ms)" -> ujson.Num(mean(timingsUserAvgMae)), // Datatype of answer: Double
+            "stddev (ms)" -> ujson.Num(std(timingsUserAvgMae)) // Datatype of answer: Double
           ),
           "3.ItemAvg" -> ujson.Obj(
-            "average (ms)" -> ujson.Num((t23-t22)*NanotoMs), // Datatype of answer: Double
-            "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
+            "average (ms)" -> ujson.Num(mean(timingsItemAvgMae)), // Datatype of answer: Double
+            "stddev (ms)" -> ujson.Num(std(timingsItemAvgMae)) // Datatype of answer: Double
           ),
           "4.Baseline" -> ujson.Obj(
-            "average (ms)" -> ujson.Num((t24-t23)*NanotoMs), // Datatype of answer: Double
-            "stddev (ms)" -> ujson.Num(std(timings)) // Datatype of answer: Double
+            "average (ms)" -> ujson.Num(mean(timingsBaselineMae)), // Datatype of answer: Double
+            "stddev (ms)" -> ujson.Num(std(timingsBaselineMae)) // Datatype of answer: Double
           )
         )
       )
