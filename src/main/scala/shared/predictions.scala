@@ -463,5 +463,77 @@ package object predictions
     }
   }
 
+  /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
+
+  def computeRikNN(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int, k: Int): Double = {
+    
+    val ratings_i = standardized_ratings.filter(x => x.item == itm)
+    
+    // Don't compute self-similarity
+    val similarities = ratings_i.map(x => cosine_similarities.get(if (x.user < usr) (x.user, usr) else (usr, x.user)) match {
+        case Some(y) => (x.user, y)
+        case None => (x.user, 0.0)
+    }).sortBy(_._2).slice(0, k).toMap
+
+    val numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => similarities.get(x.user) match {
+      case Some(y) => y * x.rating
+      case None => 0.0 
+    }).sum
+
+    val denominator = if (similarities.isEmpty) 0.0 else similarities.mapValues(x => scala.math.abs(x)).values.sum
+
+    if (denominator == 0.0) 0.0 else numerator / denominator
+  }
+
+
+  def predictorkNN(ratings: Array[Rating], k: Int): (Int, Int) => Double = {
+
+    val global_avg = globalavg(ratings)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val standardized_ratings = standardizeRatings(ratings, users_avg)
+
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+
+    val cosine_similarities = computeCosine(preprocessed_ratings)
+
+    (u: Int, i: Int) =>  {
+      val ru = users_avg.get(u) match {
+        case Some(x) => x
+        case None => global_avg
+      }
+
+      val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
+
+      ru + ri * scale(ru + ri, ru)
+    }
+  }
+  
+  def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
+
+    val global_avg = globalavg(ratings)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val standardized_ratings = standardizeRatings(ratings, users_avg)
+
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+
+    val cosine_similarities = computeCosine(preprocessed_ratings)
+
+    k: Int => (u: Int, i: Int) =>  {
+      val ru = users_avg.get(u) match {
+        case Some(x) => x
+        case None => global_avg
+      }
+
+      val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
+
+      ru + ri * scale(ru + ri, ru)
+    }
+  }
+
+
 
 }

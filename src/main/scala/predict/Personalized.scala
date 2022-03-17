@@ -43,7 +43,6 @@ object Personalized extends App {
   val predictor_uniform = predictorUniform(train)
 
   val predictor_cosine = predictorCosine(train)
-  
 
   val P11 = predictor_uniform(1, 1)
   val P12 = MAE(test, predictor_uniform)
