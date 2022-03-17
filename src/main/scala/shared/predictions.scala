@@ -357,32 +357,15 @@ package object predictions
     standardized_ratings.map(x => Rating(x.user, x.item, x.rating / scala.math.sqrt(squared_sum_users(x.user))))
   }
 
-  def adjustedCosine(preprocessed_ratings: Array[Rating], u: Int, v: Int): Double = {
-    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length > 1).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
-  }
+  def computeSimilaritiesUniform(ratings: Array[Rating]): Map[(Int, Int), Double] = {
+    val user_set = ratings.map(x => x.user).distinct
 
-  def weightedSumDev(preprocessed_ratings: Array[Rating], u: Int, i: Int): Double = {
+    val sims = for {
+      u1 <- user_set
+      u2 <- user_set
+    } yield ((u1, u2), 1.0)
 
-    val user_set_ratings =  preprocessed_ratings.filter(x => x.item == i).map(x => (x.user, x.rating)).toMap
-    val similarities = user_set_ratings.keys.map(x => {
-      if (x == u) (x, 0.0)
-      else (x, adjustedCosine(preprocessed_ratings, u, x))
-    }).filter(x => x._2 != 0).toMap
-
-    val numerator = if (similarities.isEmpty) 0 else similarities.map(x => x._2 * user_set_ratings(x._1)).sum
-    val denominator = if (similarities.isEmpty) 0 else similarities.map(x => scala.math.abs(x._2)).sum
-
-    if (denominator == 0) 0
-    else numerator / denominator
-  }
-
-  def computeWeightedSumDevs(preprocessed_ratings: Array[Rating], users: Array[Int], items: Array[Int]): Map[(Int, Int), Double] = {
-    val arr = for {
-      u <- users
-      i <- items
-    } yield ((u, i), weightedSumDev(preprocessed_ratings, u, i))
-
-    arr.toMap // Key : (user, item) , Value : weighted dev
+    sims.toMap
   }
 
   def predictorUniform(ratings: Array[Rating]): (Int, Int) => Double = {
@@ -393,22 +376,67 @@ package object predictions
 
     val standardized_ratings = standardizeRatings(ratings, users_avg)
 
-    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
-
-    val uniform_sum_devs = preprocessed_ratings.groupBy(_.item).mapValues(x => x.foldLeft(0.0)((sum, rating) => sum + rating.rating) / x.length)
+    val similarities = computeSimilaritiesUniform(ratings)
 
     (u: Int, i: Int) =>  {
       val ru = users_avg.get(u) match {
         case Some(x) => x
         case None => global_avg
       }
-      val ri = uniform_sum_devs.get(i) match {
-        case Some(x) => x
-        case None => 0.0
-      }
+
+      // Faster if pre-compute everything ?
+      val ratings_i = standardized_ratings.filter(x => x.item == i)
+
+      val ri_numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => {
+        similarities.get((x.user, u)) match {
+          case Some(y) => y * x.rating 
+          case None => 0.0
+        }
+      }).sum
+
+      val ri_denominator =  ratings_i.map(x => {
+        similarities.get((x.user, u)) match {
+          case Some(y) => y
+          case None => 0.0
+        }
+      }).sum
+
+      val ri = if (ri_denominator == 0.0) 0.0 else ri_numerator / ri_denominator
 
       ru + ri * scale(ru + ri, ru)
     }
+  }
+
+  def adjustedCosine(preprocessed_ratings: Array[Rating], u: Int, v: Int): Double = {
+    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length > 1).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+  }
+
+  def computeCosine(preprocessed_ratings: Array[Rating]): Map[(Int, Int), Double] = {
+
+   val user_set = preprocessed_ratings.map(x => x.user).distinct
+
+   val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v)).distinct
+   
+   user_pairs.map(x => (x, adjustedCosine(preprocessed_ratings, x._1, x._2))).toMap
+  }
+
+  def computeRiCosine(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
+    
+    val ratings_i = standardized_ratings.filter(x => x.item == itm)
+    
+    val similarities = ratings_i.map(x => {
+      if (x.user == usr) (x.user, 1.0)
+      else cosine_similarities.get(if (x.user < usr) (x.user, usr) else (usr, x.user)) match {
+        case Some(y) => (x.user, y)
+        case None => (x.user, 0.0)
+      }
+    }).toMap
+
+    val numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => similarities(x.user) * x.rating).sum
+
+    val denominator = if (similarities.isEmpty) 0.0 else similarities.mapValues(x => scala.math.abs(x)).values.sum
+
+    if (denominator == 0.0) 0.0 else numerator / denominator
   }
 
   def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
@@ -421,21 +449,15 @@ package object predictions
 
     val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
-    val user_set = ratings.map(x => x.user).distinct
-    val item_set = ratings.map(x => x.item).distinct
-
-    println("Computing weighted sum devs")
-    val weigthed_sum_devs = computeWeightedSumDevs(preprocessed_ratings, user_set, item_set)
+    val cosine_similarities = computeCosine(preprocessed_ratings)
 
     (u: Int, i: Int) =>  {
       val ru = users_avg.get(u) match {
         case Some(x) => x
         case None => global_avg
       }
-      val ri = weigthed_sum_devs.get((u, i)) match {
-        case Some(x) => x
-        case None => 0.0
-      }
+
+      val ri = computeRiCosine(standardized_ratings, cosine_similarities, u, i)
 
       ru + ri * scale(ru + ri, ru)
     }
