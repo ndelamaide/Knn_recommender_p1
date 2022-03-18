@@ -429,6 +429,16 @@ package object predictions
       ratings.filter(x => x.user == u).map(_.item)
   }
 
+  def jaccard[A](a: Set[A], b: Set[A]): Double = {
+    /*
+    Given two sets, compute its Jaccard similarity and return its result.
+    If the union part is zero, then return 0.
+    */
+    if (a.isEmpty || b.isEmpty){return 0.0}
+    a.intersect(b).size.toFloat/a.union(b).size.toFloat
+
+  }
+
   def jaccardSimilarityAllUsers(ratings: Array[Rating]): Map[(Int, Int), Double] = {
  
     val user_set = ratings.map(x => x.user).distinct
@@ -441,14 +451,24 @@ package object predictions
 
   }
 
-  def jaccard[A](a: Set[A], b: Set[A]): Double = {
-    /*
-    Given two sets, compute its Jaccard similarity and return its result.
-    If the union part is zero, then return 0.
-    */
-    if (a.isEmpty || b.isEmpty){return 0.0}
-    a.intersect(b).size/a.union(b).size.toDouble
+  
+  def computeRiJaccard(standardized_ratings: Array[Rating], jaccard_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
+    
+    val ratings_i = standardized_ratings.filter(x => x.item == itm)
+    
+    val similarities = ratings_i.map(x => {
+      if (x.user == usr) (x.user, 1.0)
+      else jaccard_similarities.get(if (x.user < usr) (x.user, usr) else (usr, x.user)) match {
+        case Some(y) => (x.user, y)
+        case None => (x.user, 0.0)
+      }
+    }).toMap
 
+    val numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => similarities(x.user) * x.rating).sum
+
+    val denominator = if (similarities.isEmpty) 0.0 else similarities.mapValues(x => scala.math.abs(x)).values.sum
+
+    if (denominator == 0.0) 0.0 else numerator / denominator
   }
 
 
@@ -458,9 +478,11 @@ package object predictions
 
     val users_avg = computeUsersAvg(ratings)
 
-    val jaccard_Map = jaccardSimilarityAllUsers(ratings)
-    println("AAAAAAAAAAAAAAAAAAAAAAAAAAA")
-    println(jaccard_Map.get(1, 1))
+    val standardized_ratings = standardizeRatings(ratings, users_avg)
+
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+
+    val jaccard_Map = jaccardSimilarityAllUsers(preprocessed_ratings)
 
     (u1: Int, u2: Int) =>  {
       val ru = users_avg.get(u1) match {
@@ -468,10 +490,7 @@ package object predictions
         case None => global_avg
       }
 
-      val ri = jaccard_Map.get((u1, u2)) match {
-        case Some(x) => x
-        case None => 0.0
-      }
+      val ri = computeRiJaccard(standardized_ratings, jaccard_Map, u1, u2)
       ru + ri * scale(ru + ri, ru)
     }
   }
