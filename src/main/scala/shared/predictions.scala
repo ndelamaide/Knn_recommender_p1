@@ -403,6 +403,79 @@ package object predictions
       ru + ri * scale(ru + ri, ru)
     }
   }
+  /*---------------------------------------Jaccard-Similarity---------------------------------------------------------*/
+  // def mapNeighbors(ratings: Array[Rating]): Map[Rating, Array[Rating]] = {
+  //   (u: Int) => 
+  //     ratings.map(x => (ratings.filter(_.user == x.user)))
+  // }
+
+  // def jaccardSimilarityAllUsers1(ratings: Array[Rating]):  Map[(Int, Int), Double] = {
+  //   /**
+  //   Given a patient, med, diag, lab graph, calculate pairwise similarity between all
+  //   patients. Return a RDD of (patient-1-id, patient-2-id, similarity) where 
+  //   patient-1-id < patient-2-id to avoid duplications
+  //   */
+  //   val neighborEvents=graph.collectNeighborIds(EdgeDirection.Out)
+
+  //   val allpatientneighbor=neighborEvents.filter(f=> f._1.toLong <= 1000)
+  //   val cartesianneighbor=allpatientneighbor.cartesian(allpatientneighbor).filter(f=>f._1._1<f._2._1)
+  //   cartesianneighbor.map(f=>(f._1._1,f._2._1,jaccard(f._1._2.toSet,f._2._2.toSet)))
+
+
+  // }
+
+  def mapmovies(ratings: Array[Rating]): Int => Array[Int] = { 
+    (u: Int) => 
+      ratings.filter(x => x.user == u).map(_.item)
+  }
+
+  def jaccardSimilarityAllUsers(ratings: Array[Rating]): Map[(Int, Int), Double] = {
+ 
+    val user_set = ratings.map(x => x.user).distinct
+
+    val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v)).distinct
+
+    val moviesmap = mapmovies(ratings)
+    
+    user_pairs.map(x => (x, jaccard(moviesmap(x._1).toSet, moviesmap(x._2).toSet))).toMap
+
+  }
+
+  def jaccard[A](a: Set[A], b: Set[A]): Double = {
+    /*
+    Given two sets, compute its Jaccard similarity and return its result.
+    If the union part is zero, then return 0.
+    */
+    if (a.isEmpty || b.isEmpty){return 0.0}
+    a.intersect(b).size/a.union(b).size.toDouble
+
+  }
+
+
+  def predictorJaccard(ratings: Array[Rating]): (Int, Int) => Double = {
+
+    val global_avg = predictorGlobalAvg(ratings)(-1,-1)
+
+    val users_avg = computeUsersAvg(ratings)
+
+    val jaccard_Map = jaccardSimilarityAllUsers(ratings)
+    println("AAAAAAAAAAAAAAAAAAAAAAAAAAA")
+    println(jaccard_Map.get(1, 1))
+
+    (u1: Int, u2: Int) =>  {
+      val ru = users_avg.get(u1) match {
+        case Some(x) => x
+        case None => global_avg
+      }
+
+      val ri = jaccard_Map.get((u1, u2)) match {
+        case Some(x) => x
+        case None => 0.0
+      }
+      ru + ri * scale(ru + ri, ru)
+    }
+  }
+  
 
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
 

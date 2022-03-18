@@ -46,7 +46,7 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    
-   test("Compute global average")                           { assert(within(globalavg(train2), globalavg(train2), 0.0001)) }
+   test("Compute global average")                           { assert(within(1.0, 0.0, 0.0001)) }
    test("Compute user 1 average")                           { assert(within(1.0, 0.0, 0.0001)) }
    test("Compute item 1 average")                           { assert(within(1.0, 0.0, 0.0001)) }
    test("Compute item 1 average deviation")                 { assert(within(1.0, 0.0, 0.0001)) }
