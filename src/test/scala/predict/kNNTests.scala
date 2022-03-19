@@ -48,21 +48,27 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    test("kNN predictor with k=10") { 
      // Create predictor on train2
+    val predictor_10NN = predictorAllNN(train2)(10)
+
+    // Necessary to compute similarities
+    val users_avg = computeUsersAvg(train2)
+    val standardized_ratings = standardizeRatings(train2, users_avg)
+    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
      // Similarity between user 1 and itself
-     assert(within(1.0, 0.0, 0.0001))
+    assert(within(adjustedCosine(preprocessed_ratings, 1, 1), 0.0, 0.0001))
  
      // Similarity between user 1 and 864
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(adjustedCosine(preprocessed_ratings, 1, 864), 0.2423, 0.0001))
 
      // Similarity between user 1 and 886
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(adjustedCosine(preprocessed_ratings, 1, 886), 0.2140, 0.0001))
 
      // Prediction user 1 and item 1
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(predictor_10NN(1, 1), 4.3622, 0.0001))
 
      // MAE on test2 
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(MAE(test2, predictor_10NN), 0.7451, 0.0001))
    } 
 
    test("kNN Mae") {

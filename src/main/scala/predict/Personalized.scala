@@ -63,17 +63,17 @@ object Personalized extends App {
   val P23 = MAE(test, predictor_cosine)
 
   println("Starting Jaccard")
-  val jaccard_Map = jaccardSimilarityAllUsers(train)
+  val jaccard_Map = 0.0//jaccardSimilarityAllUsers(train)
 
 
-  val P31 = jaccard_Map(1,2)
+  val P31 = 0.0//jaccard_Map(1,2)
 
-  val pred_jaccard =  predictorJaccard(train)
+  val pred_jaccard = 0.0 //predictorJaccard(train)
 
 
-  val P32 = pred_jaccard(1, 1)
+  val P32 = 0.0 //pred_jaccard(1, 1)
   println("Computing MAE")
-  val P33 = MAE(test, pred_jaccard)
+  val P33 = 0.0 //MAE(test, pred_jaccard)
 
 
 

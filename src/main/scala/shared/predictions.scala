@@ -60,31 +60,78 @@ package object predictions
       1
   }
 
+  /** 
+    * Computes average rating of every user in ratings
+    * 
+    * @param ratings
+    * @return Map with key-value pairs (user, avg-rating)
+    */
   def computeUsersAvg(ratings: Array[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.user, x.rating)).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
   }
+
+  /** 
+    * Computes average rating of every item in ratings
+    * 
+    * @param ratings
+    * @return Map with key-value pairs (item, avg-rating)
+    */
   def computeItemsAvg(ratings: Array[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.item, x.rating)).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
   }
+
+  /**
+    * Computes global average deviation of each item 
+    * 
+    * @param ratings
+    * @param users_avg dictionary of user avegage ratings (user, avg-rating)
+    * @return Map with key-value pairs (item, global average dev)
+    */
   def computeItemsGlobalDev(ratings: Array[Rating], users_avg: Map[Int, Double]): Map[Int, Double] = {
     ratings.map(x => (x.item, standardize(x.rating, users_avg(x.user)))).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
   }
-
-  def MAE(test_ratings: Array[Rating], predictor: (Int, Int) => Double): Double = {
-      mean(test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))))
-  }
-
+  
+  /** 
+    * Standardizes all ratings in ratings dataframe 
+    * 
+    * @param ratings
+    * @param users_avg dictionary of user avegage ratings (user, avg-rating)
+    * @return Dataframe with standardized ratings
+    */
   def standardizeRatings(ratings: Array[Rating], users_avg: Map[Int, Double]): Array[Rating] = {
      ratings.map(x => Rating(x.user, x.item, standardize(x.rating, users_avg(x.user))))
    }
+  
+  /** 
+    * Computes the MAE of a given predictor
+    * 
+    * @param test_ratings ratings to compute the MAE on
+    * @param predictor the predictor used to make the predictions
+    * @return the value of the MAE
+    */
+  def MAE(test_ratings: Array[Rating], predictor: (Int, Int) => Double): Double = {
+    mean(test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))))
+  }
 
   /*----------------------------------------Baseline----------------------------------------------------------*/
-  //1
+  
+  /**
+    * Predictor using the global average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorGlobalAvg(ratings: Array[Rating]): (Int, Int) => Double = {
     val global_avg = mean(ratings.map(x => x.rating))
     (u: Int, i: Int) => global_avg
   }
-
+  
+  /**
+    * Predictor using the user average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorUserAvg(ratings: Array[Rating]): (Int, Int) => Double = {
     
     // Pre-compute global avg
@@ -98,7 +145,13 @@ package object predictions
       case None => global_avg(u, i)
     }
   }
-
+  
+  /**
+    * Predictor using the item average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorItemAvg(ratings: Array[Rating]): (Int, Int) => Double = {
   
     // Pre-compute global avg
@@ -119,7 +172,12 @@ package object predictions
     }
   }
 
-
+  /**
+    * Predictor using the baseline
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorRating(ratings: Array[Rating]): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(1,1)
@@ -131,16 +189,17 @@ package object predictions
     val globalAvgDevs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
+
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = globalAvgDevs.get(i) match {
+            case Some(x) => x
+            case None => 0.0
+          }
+          x + ri * scale(x + ri, x)
+        }
         case None => global_avg
       }
-      val ri = globalAvgDevs.get(i) match {
-        case Some(x) => x
-        case None => 0.0
-      }
-
-      ru + ri * scale(ru + ri, ru)
     }
   }
 
@@ -151,30 +210,71 @@ package object predictions
   def standardize(rating: Double, userAvg: Double): Double = {
       (rating - userAvg) / scale(rating, userAvg)
   }
-
+  
+  /** 
+    * Computes average rating of every user in ratings
+    * 
+    * @param ratings
+    * @return Map with key-value pairs (user, avg-rating)
+    */
   def computeUsersAvg(ratings: RDD[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.user, (x.rating, 1))).reduceByKey((v1, v2) => 
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
-
+  
+  /** 
+    * Computes average rating of every item in ratings
+    * 
+    * @param ratings
+    * @return Map with key-value pairs (item, avg-rating)
+    */
   def computeItemsAvg(ratings: RDD[Rating]): Map[Int, Double] = {
     ratings.map(x => (x.item, (x.rating, 1))).reduceByKey((v1, v2) => 
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
-
+  
+  /**
+    * Computes global average deviation of each item 
+    * 
+    * @param ratings
+    * @param users_avg dictionary of user avegage ratings (user, avg-rating)
+    * @return Map with key-value pairs (item, global average dev)
+    */
   def computeItemsGlobalDev(ratings: RDD[Rating], users_avg: Map[Int, Double]) : Map[Int, Double] = {
     ratings.map(x => (x.item, (standardize(x.rating, users_avg(x.user)), 1))).reduceByKey((v1, v2) =>
       (v1._1 + v2._1, v1._2 + v2._2)).mapValues(pair => pair._1 / pair._2).collect().toMap
   }
 
-  
-  /*---------Predictors---------*/
+  /** 
+    * Computes the MAE of a given predictor
+    * 
+    * @param test_ratings ratings to compute the MAE on
+    * @param predictor the predictor used to make the predictions
+    * @return the value of the MAE
+    */
+  def MAE(test_ratings: RDD[Rating], predictor: (Int, Int) => Double): Double = {
+      test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))).mean()
+  }
 
+  /*---------Predictors---------*/
+  
+  /**
+    * Predictor using the global average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorGlobalAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
     val global_avg = ratings.map(x => x.rating).mean()
     (u: Int, i: Int) => global_avg
   }
-
+ 
+  /**
+    * Predictor using the user average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorUserAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
     
     // Pre-compute global avg
@@ -189,6 +289,12 @@ package object predictions
     }
   }
   
+  /**
+    * Predictor using the item average
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorItemAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
   
     // Pre-compute global avg
@@ -209,6 +315,12 @@ package object predictions
     }
   }
 
+  /**
+    * Predictor using the baseline
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorRating(ratings: RDD[Rating]): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(1,1)
@@ -220,23 +332,19 @@ package object predictions
     val globalAvgDevs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
+
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = globalAvgDevs.get(i) match {
+            case Some(x) => x
+            case None => 0.0
+          }
+          x + ri * scale(x + ri, x)
+        }
         case None => global_avg
       }
-      val ri = globalAvgDevs.get(i) match {
-        case Some(x) => x
-        case None => 0.0
-      }
-
-      ru + ri * scale(ru + ri, ru)
     }
   }
-  
-  def MAE(test_ratings: RDD[Rating], predictor: (Int, Int) => Double): Double = {
-      test_ratings.map(x => scala.math.abs(x.rating - predictor(x.user, x.item))).mean()
-  }
-
 
   /*----------------------------------------Personalized----------------------------------------------------------*/
 
@@ -290,6 +398,12 @@ package object predictions
 
   // }
 
+  /**
+    * Pre-process the ratings before computing the similarity
+    *
+    * @param standardized_ratings
+    * @return a dataframe with the ratings pre-processed
+    */
   def preprocessRatings(standardized_ratings: Array[Rating]): Array[Rating] = {
 
     // Compute sum of square of devs for each user
@@ -297,7 +411,13 @@ package object predictions
 
     standardized_ratings.map(x => Rating(x.user, x.item, x.rating / scala.math.sqrt(squared_sum_users(x.user))))
   }
-
+  
+  /**
+    * Computes the similarity between each user using a value of 1 (uniform)
+    *
+    * @param ratings
+    * @return a dictionary of key-value pairs ((user1, user2), similarity)
+    */
   def computeSimilaritiesUniform(ratings: Array[Rating]): Map[(Int, Int), Double] = {
     val user_set = ratings.map(x => x.user).distinct
 
@@ -309,6 +429,12 @@ package object predictions
     sims.toMap
   }
 
+  /**
+    * Predictor using a similarity of 1 between each user (uniform)
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorUniform(ratings: Array[Rating]): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
@@ -320,10 +446,6 @@ package object predictions
     val similarities = computeSimilaritiesUniform(ratings)
 
     (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
-        case None => global_avg
-      }
 
       // Faster if pre-compute everything ?
       val ratings_i = standardized_ratings.filter(x => x.item == i)
@@ -342,16 +464,34 @@ package object predictions
         }
       }).sum
 
-      val ri = if (ri_denominator == 0.0) 0.0 else ri_numerator / ri_denominator
-
-      ru + ri * scale(ru + ri, ru)
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = if (ri_denominator == 0.0) 0.0 else ri_numerator / ri_denominator
+          x + ri * scale(x + ri, x)
+        }
+        case None => global_avg
+      }
     }
   }
 
+  /**
+    * Computes the adjusted cosine similarity between two users
+    *
+    * @param preprocessed_ratings
+    * @param u first user
+    * @param v secoond user
+    * @return the cosine similarity between the two users
+    */
   def adjustedCosine(preprocessed_ratings: Array[Rating], u: Int, v: Int): Double = {
-    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length > 1).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length == 2).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
   }
 
+  /**
+    * Computes the cosine similarity for all pairs of users
+    *
+    * @param preprocessed_ratings
+    * @return a dictionary of key-value pairs ((user1, user2), similarity)
+    */
   def computeCosine(preprocessed_ratings: Array[Rating]): Map[(Int, Int), Double] = {
 
    val user_set = preprocessed_ratings.map(x => x.user).distinct
@@ -361,6 +501,15 @@ package object predictions
    user_pairs.map(x => (x, adjustedCosine(preprocessed_ratings, x._1, x._2))).toMap
   }
 
+  /**
+    * Computes the user-specific weighted sum deviation using the cosine similarity
+    *
+    * @param standardized_ratings
+    * @param cosine_similarities
+    * @param usr the user
+    * @param itm the item
+    * @return the user-specific weighted sum deviation of item itm for user usr
+    */
   def computeRiCosine(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
     
     val ratings_i = standardized_ratings.filter(x => x.item == itm)
@@ -380,6 +529,12 @@ package object predictions
     if (denominator == 0.0) 0.0 else numerator / denominator
   }
 
+  /**
+    * Predictor using the cosine similarity
+    *
+    * @param ratings
+    * @return a predictor
+    */
   def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
@@ -393,14 +548,14 @@ package object predictions
     val cosine_similarities = computeCosine(preprocessed_ratings)
 
     (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
+
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = computeRiCosine(standardized_ratings, cosine_similarities, u, i)
+          x + ri * scale(x + ri, x)
+        }
         case None => global_avg
       }
-
-      val ri = computeRiCosine(standardized_ratings, cosine_similarities, u, i)
-
-      ru + ri * scale(ru + ri, ru)
     }
   }
   /*---------------------------------------Jaccard-Similarity---------------------------------------------------------*/
@@ -498,6 +653,16 @@ package object predictions
 
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
 
+  /**
+    * Computes the user-specific weighted-sum deviation using only the k-nearest neighboors
+    *
+    * @param standardized_ratings
+    * @param cosine_similarities
+    * @param usr the user
+    * @param itm the item
+    * @param k the k-nearest neighboors to consider
+    * @return the user-specific weighted-sum deviation for item itm and user usr
+    */
   def computeRikNN(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int, k: Int): Double = {
     
     val ratings_i = standardized_ratings.filter(x => x.item == itm)
@@ -506,7 +671,7 @@ package object predictions
     val similarities = ratings_i.map(x => cosine_similarities.get(if (x.user < usr) (x.user, usr) else (usr, x.user)) match {
         case Some(y) => (x.user, y)
         case None => (x.user, 0.0)
-    }).sortBy(_._2).slice(0, k).toMap
+    }).sortBy(_._2)(Ordering[Double].reverse).slice(0, k).toMap
 
     val numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => similarities.get(x.user) match {
       case Some(y) => y * x.rating
@@ -519,6 +684,13 @@ package object predictions
   }
 
 
+  /**
+    * Predictor using the k-nearest neighboors
+    *
+    * @param ratings
+    * @param k k-nearest neighboors to consider
+    * @return the predictor
+    */
   def predictorkNN(ratings: Array[Rating], k: Int): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
@@ -532,17 +704,23 @@ package object predictions
     val cosine_similarities = computeCosine(preprocessed_ratings)
 
     (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
+      
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
+          x + ri * scale(x + ri, x)
+        }
         case None => global_avg
       }
-
-      val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
-
-      ru + ri * scale(ru + ri, ru)
     }
   }
   
+  /**
+    * Predictor for any k-nearest neighboors
+    *
+    * @param ratings
+    * @return a predictor for any k
+    */
   def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
@@ -556,17 +734,15 @@ package object predictions
     val cosine_similarities = computeCosine(preprocessed_ratings)
 
     k: Int => (u: Int, i: Int) =>  {
-      val ru = users_avg.get(u) match {
-        case Some(x) => x
+
+      users_avg.get(u) match {
+        case Some(x) => {
+          val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
+          x + ri * scale(x + ri, x)
+        }
         case None => global_avg
       }
-
-      val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
-
-      ru + ri * scale(ru + ri, ru)
     }
   }
-
-
 
 }
