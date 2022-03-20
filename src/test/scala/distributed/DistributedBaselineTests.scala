@@ -97,7 +97,7 @@ class DistributedBaselineTests extends AnyFunSuite with BeforeAndAfterAll {
 
 
     assert(within(MAE(test2, predictor_global_avg), 0.0, 0.0001))
-    assert(within(MAE(test2, predictor_user_avg, 0.0, 0.0001))
+    assert(within(MAE(test2, predictor_user_avg), 0.0, 0.0001))
     assert(within(MAE(test2, predictor_item_avg), 0.0, 0.0001))
     assert(within(MAE(test2, predictor_rating), 0.7604, 0.0001))
    }

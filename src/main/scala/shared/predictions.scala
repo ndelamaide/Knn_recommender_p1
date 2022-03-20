@@ -594,6 +594,15 @@ package object predictions
 
   }
 
+
+  def jaccardpred12(ratings: Array[Rating]): Double = {
+    val movies1 = ratings.filter(x => x.user == 1).map(_.item)
+    val movies2 = ratings.filter(x => x.user == 2).map(_.item)
+
+
+    jaccard(movies1.toSet, movies2.toSet)
+  }
+
   def jaccardSimilarityAllUsers(ratings: Array[Rating]): Map[(Int, Int), Double] = {
  
     val user_set = ratings.map(x => x.user).distinct

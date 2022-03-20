@@ -55,7 +55,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
     val standardized_ratings = standardizeRatings(train2, users_avg)
     val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
-     // Similarity between user 1 and itself
+     //Similarity between user 1 and itself
     assert(within(adjustedCosine(preprocessed_ratings, 1, 1), 0.0, 0.0001))
  
      // Similarity between user 1 and 864

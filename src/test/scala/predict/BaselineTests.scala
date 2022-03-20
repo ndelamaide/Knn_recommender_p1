@@ -46,21 +46,63 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    
-   test("Compute global average")                           { assert(within(1.0, 0.0, 0.0001)) }
-   test("Compute user 1 average")                           { assert(within(1.0, 0.0, 0.0001)) }
-   test("Compute item 1 average")                           { assert(within(1.0, 0.0, 0.0001)) }
-   test("Compute item 1 average deviation")                 { assert(within(1.0, 0.0, 0.0001)) }
-   test("Compute baseline prediction for user 1 on item 1") { assert(within(1.0, 0.0, 0.0001)) }
+   test("Compute global average") {
+
+    val predictor = predictorGlobalAvg(train2)
+    val global_avg = predictor(1,1)
+
+    assert(within(global_avg, 3.5264, 0.0001)) 
+   }
+
+   test("Compute user 1 average") {
+
+    val predictor = predictorUserAvg(train2)
+    val user1_avg = predictor(1, 1)
+
+    assert(within(user1_avg, 3.6330, 0.0001))
+   }
+
+   test("Compute item 1 average") {
+
+    val predictor = predictorItemAvg(train2)
+    val item1_avg = predictor(1, 1)
+
+    assert(within(item1_avg, 3.8882, 0.0001)) 
+   }
+
+   test("Compute item 1 average deviation") { 
+
+    val users_avg = computeUsersAvg(train2)
+    val items_gloval_avg_dev = computeItemsGlobalDev(train2, users_avg)
+    val item1_avg_dev = items_gloval_avg_dev(1)
+
+    assert(within(item1_avg_dev, 0.3027, 0.0001)) 
+   }
+
+   test("Compute baseline prediction for user 1 on item 1") {
+
+    val predictor = predictorRating(train2)
+    val prediction_user1_item1 = predictor(1, 1)
+
+    assert(within(prediction_user1_item1, 4.0468, 0.0001)) 
+   }
 
    // Show how to compute the MAE on all four non-personalized methods:
    // 1. There should be four different functions, one for each method, to create a predictor
    // with the following signature: ````predictor: (train: Seq[shared.predictions.Rating]) => ((u: Int, i: Int) => Double)````;
    // 2. There should be a single reusable function to compute the MAE on the test set, given a predictor;
    // 3. There should be invocations of both to show they work on the following datasets.
-   test("MAE on all four non-personalized methods on data/ml-100k/u2.base and data/ml-100k/u2.test") {
-     assert(within(1.0, 0.0, 0.0001))
-     assert(within(1.0, 0.0, 0.0001))
-     assert(within(1.0, 0.0, 0.0001))
-     assert(within(1.0, 0.0, 0.0001))
+  test("MAE on all four non-personalized methods on data/ml-100k/u2.base and data/ml-100k/u2.test") {
+
+    val predictor_global_avg = predictorGlobalAvg(train2)
+    val predictor_user_avg = predictorUserAvg(train2)
+    val predictor_item_avg = predictorItemAvg(train2)
+    val predictor_rating = predictorRating(train2)
+
+
+    assert(within(MAE(test2, predictor_global_avg), 0.9489, 0.0001))
+    assert(within(MAE(test2, predictor_user_avg), 0.8383, 0.0001))
+    assert(within(MAE(test2, predictor_item_avg), 0.8188, 0.0001))
+    assert(within(MAE(test2, predictor_rating), 0.7604, 0.0001))
    }
 }
