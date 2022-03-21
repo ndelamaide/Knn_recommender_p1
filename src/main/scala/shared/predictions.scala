@@ -348,55 +348,6 @@ package object predictions
 
   /*----------------------------------------Personalized----------------------------------------------------------*/
 
-  // def preprocess_ratings(normalized_ratings: Array[Rating]): Array[Rating] = {
-
-  //   val groupbyuser = normalized_ratings.groupBy(_.user)
-
-  //   normalized_ratings.map(x => Rating(x.user, x.item, 
-  //     x.rating/Math.sqrt(groupbyuser.get(x.user) match{
-  //       case Some(x_user) => x_user.map(user_rating => Math.pow(user_rating.rating, 2)).sum
-  //       case None => 0
-  //     })))
-  // }
-
-  // def similarity_u_v(prep_ratings: Array[Rating], u: Int, v: Int): Double = {
-
-  //   val prep_ratings_gb = prep_ratings.groupBy(_.user)
-  //   val prep_ratings_u = prep_ratings_gb.getOrElse(u, 0) //Any becasue Rating or Int
-  //   val prep_ratings_v = prep_ratings_gb.getOrElse(v, 0)
-
-  //   prep_ratings_u.filter(r => prep_ratings_v.map(_.item).contains(r.item)).map(u => 
-  //     u.rating * prep_ratings_v.filter(v => v.item == u.item).rating)
-  // }
-
-  // def weighted_dev_avg_item_i(normalized_ratings: Array[Rating], item_i: Int): Array[Rating] = {
-  //   val groupbyuser = normalized_ratings.groupBy(_.item)
-  //   val prepRating = preprocess_ratings(normalized_ratings)
-
-  //   normalized_ratings.map(x => Rating(x.user, x.item, 
-  //     groupbyuser.get(x.item) match {
-  //       case Some(x_item) => x_item.map(item_rating => item_rating.rating * 
-  //         mean(prepRating.filter(y => y.user == x_item.map(_.user) && y.item == x_item.map(_.item)).map(_.rating))
-  //       ).sum / x_item.map(item_rating => Math.abs(prepRating.filter(y => y.user == x_item.map(_.user) && y.item == x_item.map(_.item))))
-
-  //       case None => 0 
-  //     }
-  //   ))
-  // }
-
-  // def predictor_useru_itemi_personalized(ratings: Array[Rating]): (Int, Int) => Double = {
-
-  //   (user_u: Int, item_i: Int) => {
-  //     if (ratings.filter(x => (x.item == item_i) && (x.user == user_u)).isEmpty) 
-  //       predictor_user_avg(ratings)(user_u, item_i)
-  //     else {
-  //       val ru = predictor_user_avg(ratings)(user_u, item_i)
-  //       val ri = dev_avg_item_i(ratings, item_i)
-  //       ru + ri * scale(ri + ru, ru)
-  //     }
-  //   }
-
-  // }
 
   /**
     * Pre-process the ratings before computing the similarity
@@ -559,31 +510,27 @@ package object predictions
     }
   }
   /*---------------------------------------Jaccard-Similarity---------------------------------------------------------*/
-  // def mapNeighbors(ratings: Array[Rating]): Map[Rating, Array[Rating]] = {
-  //   (u: Int) => 
-  //     ratings.map(x => (ratings.filter(_.user == x.user)))
-  // }
-
-  // def jaccardSimilarityAllUsers1(ratings: Array[Rating]):  Map[(Int, Int), Double] = {
-  //   /**
-  //   Given a patient, med, diag, lab graph, calculate pairwise similarity between all
-  //   patients. Return a RDD of (patient-1-id, patient-2-id, similarity) where 
-  //   patient-1-id < patient-2-id to avoid duplications
-  //   */
-  //   val neighborEvents=graph.collectNeighborIds(EdgeDirection.Out)
-
-  //   val allpatientneighbor=neighborEvents.filter(f=> f._1.toLong <= 1000)
-  //   val cartesianneighbor=allpatientneighbor.cartesian(allpatientneighbor).filter(f=>f._1._1<f._2._1)
-  //   cartesianneighbor.map(f=>(f._1._1,f._2._1,jaccard(f._1._2.toSet,f._2._2.toSet)))
 
 
-  // }
+  /**
+    * Returns a function that returns all movies rated by a specific user
+    *
+    * @param u Specific user
+    * @return  function that returns all movies rated by a specific user
+    */
 
-  def mapmovies(ratings: Array[Rating]): Int => Array[Int] = { 
+  def mapmovies(ratings: Array[Rating]): Int => Array[Int] = {
     (u: Int) => 
       ratings.filter(x => x.user == u).map(_.item)
   }
 
+  /**
+    * Computes the adjusted cosine similarity between two users
+    *
+    * @param a Movie set corresponding to the first viewer
+    * @param b Movie set corresponding to the second viewer
+    * @return the jaccard similarity between the two users
+    */
   def jaccard[A](a: Set[A], b: Set[A]): Double = {
     /*
     Given two sets, compute its Jaccard similarity and return its result.
@@ -594,28 +541,48 @@ package object predictions
 
   }
 
-
-  def jaccardpred12(ratings: Array[Rating]): Double = {
-    val movies1 = ratings.filter(x => x.user == 1).map(_.item)
-    val movies2 = ratings.filter(x => x.user == 2).map(_.item)
+  /**
+    * Computes the Jaccard similarity for user pair (1, 2)
+    *
+    * @param preprocessed_ratings
+    * @return the similarity between user 1 and 2
+    */
+  def jaccardpred12(preprocessed_ratings: Array[Rating]): Double = {
+    val movies1 = preprocessed_ratings.filter(x => x.user == 1).map(_.item)
+    val movies2 = preprocessed_ratings.filter(x => x.user == 2).map(_.item)
 
 
     jaccard(movies1.toSet, movies2.toSet)
   }
 
-  def jaccardSimilarityAllUsers(ratings: Array[Rating]): Map[(Int, Int), Double] = {
+  /**
+    * Computes the Jaccard similarity for all pairs of users
+    *
+    * @param preprocessed_ratings
+    * @return a dictionary of key-value pairs ((user1, user2), similarity)
+    */
+  def jaccardSimilarityAllUsers(preprocessed_ratings: Array[Rating]): Map[(Int, Int), Double] = {
  
-    val user_set = ratings.map(x => x.user).distinct
+    val user_set = preprocessed_ratings.map(x => x.user).distinct
 
     val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v)).distinct
 
-    val moviesmap = mapmovies(ratings)
+    val moviesmap = mapmovies(preprocessed_ratings)
     
     user_pairs.map(x => (x, jaccard(moviesmap(x._1).toSet, moviesmap(x._2).toSet))).toMap
 
   }
 
   
+  /**
+    * Computes the user-specific weighted sum deviation using the jaccard similarity
+    *
+    * @param standardized_ratings
+    * @param jaccard_similarities
+    * @param usr the user
+    * @param itm the item
+    * @return the user-specific weighted sum deviation of item itm for user usr
+    */
   def computeRiJaccard(standardized_ratings: Array[Rating], jaccard_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
     
     val ratings_i = standardized_ratings.filter(x => x.item == itm)
@@ -636,6 +603,12 @@ package object predictions
   }
 
 
+    /**
+  * Predictor using the Jaccard similarity
+  *
+  * @param ratings
+  * @return a predictor
+  */
   def predictorJaccard(ratings: Array[Rating]): (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
