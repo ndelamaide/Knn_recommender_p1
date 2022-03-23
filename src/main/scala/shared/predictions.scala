@@ -309,7 +309,7 @@ package object predictions
     (u: Int, i: Int) => itemsAvg.get(i) match {
       case Some(x) => x
       case None => users_avg.get(u) match {
-        case Some(x) => x
+        case Some(y) => y
         case None => global_avg
       }
     }
@@ -332,7 +332,6 @@ package object predictions
     val globalAvgDevs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
-
       users_avg.get(u) match {
         case Some(x) => {
           val ri = globalAvgDevs.get(i) match {

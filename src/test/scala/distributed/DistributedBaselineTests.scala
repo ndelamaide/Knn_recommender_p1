@@ -96,9 +96,9 @@ class DistributedBaselineTests extends AnyFunSuite with BeforeAndAfterAll {
     val predictor_rating = predictorRating(train2)
 
 
-    assert(within(MAE(test2, predictor_global_avg), 0.0, 0.0001))
-    assert(within(MAE(test2, predictor_user_avg), 0.0, 0.0001))
-    assert(within(MAE(test2, predictor_item_avg), 0.0, 0.0001))
+    assert(within(MAE(test2, predictor_global_avg), 0.9489, 0.0001))
+    assert(within(MAE(test2, predictor_user_avg), 0.8383, 0.0001))
+    assert(within(MAE(test2, predictor_item_avg), 0.8188, 0.0001))
     assert(within(MAE(test2, predictor_rating), 0.7604, 0.0001))
    }
 }
