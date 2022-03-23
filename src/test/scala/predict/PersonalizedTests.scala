@@ -45,37 +45,44 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    test("Test uniform unary similarities") { 
      // Create predictor with uniform similarities
+     val predictor_uniform = predictorUniform(train2)
      
      // Compute personalized prediction for user 1 on item 1
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(predictor_uniform(1, 1), 4.0468, 0.0001))
 
      // MAE 
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(MAE(test2, predictor_uniform), 0.7604, 0.0001))
    } 
 
    test("Test ajusted cosine similarity") { 
      // Create predictor with adjusted cosine similarities
+     val predictor_cosine = predictorCosine(train)
+
+     val users_avg = computeUsersAvg(train)
+     val standardized_ratings = standardizeRatings(train, users_avg)
+     val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
      // Similarity between user 1 and user 2
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(adjustedCosine(preprocessed_ratings, 1, 2),  0.0730, 0.0001))
 
      // Compute personalized prediction for user 1 on item 1
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(predictor_cosine(1, 1), 4.0870, 0.0001))
 
      // MAE 
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(MAE(test2, predictor_cosine), 0.7372, 0.0001))
    }
 
    test("Test jaccard similarity") { 
      // Create predictor with jaccard similarities
+     val pred_jaccard = predictorJaccard(train2)
 
      // Similarity between user 1 and user 2
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(jaccardpred12(train2), 0.7372, 0.0001))
 
      // Compute personalized prediction for user 1 on item 1
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(pred_jaccard(1, 1), 4.0982, 0.0001))
 
      // MAE 
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(MAE(test, pred_jaccard), 0.7556, 0.0001))
    }
 }
