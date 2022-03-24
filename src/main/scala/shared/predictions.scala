@@ -633,8 +633,8 @@ package object predictions
   
 
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
-
-  /**
+  
+    /**
     * Computes the user-specific weighted-sum deviation using only the k-nearest neighboors
     *
     * @param standardized_ratings
@@ -664,38 +664,58 @@ package object predictions
     if (denominator == 0.0) 0.0 else numerator / denominator
   }
 
-
+  
   /**
-    * Predictor using the k-nearest neighboors
+    * Predictor for any k-nearest neighboors
     *
     * @param ratings
-    * @param k k-nearest neighboors to consider
-    * @return the predictor
+    * @return a predictor for any k
     */
-  def predictorkNN(ratings: Array[Rating], k: Int): (Int, Int) => Double = {
+  // def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
 
-    val global_avg = predictorGlobalAvg(ratings)(-1,-1)
+  //   val global_avg = predictorGlobalAvg(ratings)(-1,-1)
 
-    val users_avg = computeUsersAvg(ratings)
+  //   val users_avg = computeUsersAvg(ratings)
 
-    val standardized_ratings = standardizeRatings(ratings, users_avg)
+  //   val standardized_ratings = standardizeRatings(ratings, users_avg)
 
-    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
+  //   val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
-    val cosine_similarities = computeCosine(preprocessed_ratings)
+  //   val user_set = preprocessed_ratings.map(x => x.user).distinct
 
-    (u: Int, i: Int) =>  {
+  //   val user_pairs_cosine = for(u <- user_set; v <- user_set if u != v) yield (u, (v, adjustedCosine(standardized_ratings, u, v)))
+    
+  //   (k: Int) => {
+
+  //     val user_other_similarities = user_pairs_cosine.groupBy(_._1).mapValues(x => x.map(y => y._2).sortBy(-_._2).zipWithIndex.map(y => if (y._2 < k) y._1 else (y._1._1, 0.0)))
+
+  //     println("K", k)
       
-      users_avg.get(u) match {
-        case Some(x) => {
-          val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
-          x + ri * scale(x + ri, x)
-        }
-        case None => global_avg
-      }
-    }
-  }
-  
+  //       (u: Int, i: Int) =>  {
+
+  //       users_avg.get(u) match {
+  //         case Some(ru) => {
+            
+  //           val k_similarities = user_other_similarities(u).filter(x => x._2 != 0.0).toMap
+
+  //           if (k_similarities.isEmpty) ru else {
+
+  //             val items_i_k_similar = preprocessed_ratings.filter(x => (x.item == i) && k_similarities.isDefinedAt(x.user))
+
+  //             val numerator = items_i_k_similar.map(x => x.rating * k_similarities(x.user)).sum
+  //             val denominator = k_similarities.mapValues(x => scala.math.abs(x)).values.sum
+
+  //             val ri = if (denominator == 0.0) 0.0 else numerator / denominator
+
+  //             ru + ri * scale(ru + ri, ru)
+  //           }          
+  //         }
+  //         case None => global_avg
+  //       }
+  //     }
+  //   }
+  // }
+
   /**
     * Predictor for any k-nearest neighboors
     *
@@ -724,6 +744,19 @@ package object predictions
         case None => global_avg
       }
     }
+  }
+
+  /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
+    
+  def recommendMovies(ratings: Array[Rating], predictor: ((Int, Int) => Double), usr: Int, n: Int): Array[(Int, Double)] = {
+
+      val movies_not_rated = ratings.filter(x => x.user != usr).map(x => x.item).distinct
+
+      val preds = movies_not_rated.map(x => (x, predictor(usr, x))).sortBy(x => (-x._2, x._1))
+
+      println("preds", preds.mkString(" "))
+      
+      preds.slice(0, n)
   }
 
 }

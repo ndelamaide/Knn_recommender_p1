@@ -41,8 +41,9 @@ object kNN extends App {
 
 
   val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    Thread.sleep(1000) // Do everything here from train and test
-    42        // Output answer as last value
+    val predictor_allNN = predictorAllNN(train)
+    val predictor_300NN = predictor_allNN(300)
+    MAE(test, predictor_300NN)       // Output answer as last value
   }))
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
 

@@ -53,6 +53,15 @@ object Recommender extends App {
       else (cols(0).toInt, cols(1).toString)
   }).collect().toMap
 
+  val train = data ++ personal
+
+  val predictor_allNN = predictorAllNN(train)
+  val predictor_300NN = predictor_allNN(300)
+
+  val R1 = predictor_300NN(1, 1)
+
+  val R2 = recommendMovies(train, predictor_300NN, 944, 3)
+
 
   // Save answers as JSON
   def printToFile(content: String, 
@@ -71,13 +80,13 @@ object Recommender extends App {
           "personal" -> conf.personal()
         ),
         "R.1" -> ujson.Obj(
-          "PredUser1Item1" -> ujson.Num(0.0) // Prediction for user 1 of item 1
+          "PredUser1Item1" -> R1 // Prediction for user 1 of item 1
         ),
           // IMPORTANT: To break ties and ensure reproducibility of results,
           // please report the top-3 recommendations that have the smallest
           // movie identifier.
 
-        "R.2" -> List((254, 0.0), (338, 0.0), (615, 0.0)).map(x => ujson.Arr(x._1, movieNames(x._1), x._2))
+        "R.2" -> List(R2.apply(0), R2.apply(1), R2.apply(2)).map(x => ujson.Arr(x._1, movieNames(x._1), x._2))
        )
       val json = write(answers, 4)
 
