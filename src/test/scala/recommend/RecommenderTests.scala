@@ -50,18 +50,28 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
      // TODO: Create predictor
    }
 
+  val train = data ++ personal
+
+  val predictor_allNN = predictorAllNN(train)
+  val predictor_300NN = predictor_allNN(300)
+
    // All the functions definitions for the tests below (and the tests in other suites) 
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
    //
    test("Prediction for user 1 of item 1") {
-     assert(within(1.0, 0.0, 0.0001))
+     assert(within(predictor_300NN(1, 1), 4.1321, 0.0001))
    }
 
    test("Top 3 recommendations for user 944") {
-     val recommendations = List((1,0.0), (2,0.0), (3,0.0))
-     assert(recommendations(0)._1 == 4)
+     val recommendations = recommendMovies(train, predictor_300NN, 944, 3).toList
+     assert(recommendations(0)._1 == 119)
      assert(within(recommendations(0)._2, 5.0, 0.0001))
      // Idem recommendation 2 and 3
+     assert(recommendations(1)._1 == 814)
+     assert(within(recommendations(0)._2, 5.0, 0.0001))
+
+     assert(recommendations(2)._1 == 1189)
+     assert(within(recommendations(0)._2, 5.0, 0.0001))
    }
 
 }
