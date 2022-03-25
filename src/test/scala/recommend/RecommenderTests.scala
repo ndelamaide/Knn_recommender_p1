@@ -50,9 +50,9 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
      // TODO: Create predictor
    }
 
-  val train = data ++ personal
+  val train2 = data ++ personal
 
-  val predictor_allNN = predictorAllNN(train)
+  val predictor_allNN = predictorAllNN(train2)
   val predictor_300NN = predictor_allNN(300)
 
    // All the functions definitions for the tests below (and the tests in other suites) 
@@ -63,7 +63,7 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
    }
 
    test("Top 3 recommendations for user 944") {
-     val recommendations = recommendMovies(train, predictor_300NN, 944, 3).toList
+     val recommendations = recommendMovies(train2, predictor_300NN, 944, 3).toList
      assert(recommendations(0)._1 == 119)
      assert(within(recommendations(0)._2, 5.0, 0.0001))
      // Idem recommendation 2 and 3

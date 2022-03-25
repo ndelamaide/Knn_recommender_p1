@@ -56,10 +56,10 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("Test ajusted cosine similarity") { 
      // Create predictor with adjusted cosine similarities
-     val predictor_cosine = predictorCosine(train)
+     val predictor_cosine = predictorCosine(train2)
 
-     val users_avg = computeUsersAvg(train)
-     val standardized_ratings = standardizeRatings(train, users_avg)
+     val users_avg = computeUsersAvg(train2)
+     val standardized_ratings = standardizeRatings(train2, users_avg)
      val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
      // Similarity between user 1 and user 2
@@ -77,12 +77,12 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
      val pred_jaccard = predictorJaccard(train2)
 
      // Similarity between user 1 and user 2
-     assert(within(jaccardpred12(train2), 0.7372, 0.0001))
+     assert(within(jaccardpred12(train2), 0.0318, 0.0001))
 
      // Compute personalized prediction for user 1 on item 1
      assert(within(pred_jaccard(1, 1), 4.0982, 0.0001))
 
      // MAE 
-     assert(within(MAE(test, pred_jaccard), 0.7556, 0.0001))
+     assert(within(MAE(test2, pred_jaccard), 0.7556, 0.0001))
    }
 }

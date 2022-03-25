@@ -22,7 +22,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    var train2 : Array[shared.predictions.Rating] = null
    var test2 : Array[shared.predictions.Rating] = null
 
-   var adjustedCosine : Map[Int, Map[Int, Double]] = null
+  // var adjustedCosine_ : Map[Int, Map[Int, Double]] = null
 
    override def beforeAll {
        Logger.getLogger("org").setLevel(Level.OFF)
@@ -37,6 +37,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        train2 = load(spark, train2Path, separator).collect()
        test2 = load(spark, test2Path, separator).collect()
    }
+
 
    val predictor_allNN = predictorAllNN(train2)
 
@@ -75,11 +76,20 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("kNN Mae") {
      // Compute MAE for k around the baseline MAE
-     val predictor_50NN = predictor_allNN(50)
+    
+    val predictor_52NN = predictorAllNN(train2)(52)
+    val MAEKNN52 = MAE(test2, predictor_52NN)
+    assert(within(MAEKNN52, 0.7610, 0.0001))
 
-     val MAE_knn = MAE(test2, predictor_50NN)
-     
+    val predictor_53NN = predictorAllNN(train2)(53)
+    val MAEKNN53 = MAE(test2, predictor_53NN)
+    assert(within(MAEKNN53, 0.7601, 0.0001))
+
      // Ensure the MAEs are indeed lower/higher than baseline
-     assert(0.7604 < MAE_knn)
+    val baselineMAE = 0.7604
+
+    assert(MAEKNN52>baselineMAE)
+
+    assert(MAEKNN53<baselineMAE)
    }
 }
