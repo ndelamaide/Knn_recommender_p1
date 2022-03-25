@@ -134,6 +134,9 @@ package object predictions
   var similarities_cosine: Map[(Int, Int),Double] = null
   var preprocessed_ratings: Array[Rating] = null
   var user_similarities: Map[Int,Array[(Int, Double)]] = null
+  var preprocessed_groupby_user: Map[Int,Array[Rating]] = null
+  var standardized_groupby_item: Map[Int,Array[Rating]] = null
+
 
 
   /*----------------------------------------Baseline----------------------------------------------------------*/
@@ -357,7 +360,7 @@ package object predictions
     * @return a dictionary of key-value pairs ((user1, user2), similarity)
     */
   def computeSimilaritiesUniform(ratings: Array[Rating]): Map[(Int, Int), Double] = {
-    val user_set = ratings.map(x => x.user).distinct
+    val user_set = preprocessed_groupby_user.keySet
 
     val sims = for {
       u1 <- user_set
@@ -412,8 +415,9 @@ package object predictions
     * @param v secoond user
     * @return the cosine similarity between the two users
     */
-  def adjustedCosine(preprocessed_ratings: Array[Rating], u: Int, v: Int): Double = {
-    preprocessed_ratings.filter(x => (x.user == u) || (x.user == v)).groupBy(_.item).filter(x => x._2.length == 2).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+  def adjustedCosine(groupby_user: Map[Int,Array[Rating]], u: Int, v: Int): Double = {
+    val ratings_u_v = groupby_user(u) ++ groupby_user(v)
+    ratings_u_v.groupBy(_.item).filter(x => x._2.length == 2).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
   }
 
   /**
@@ -424,25 +428,26 @@ package object predictions
     */
   def computeCosine(preprocessed_ratings: Array[Rating]): Map[(Int, Int), Double] = {
 
-   val user_set = preprocessed_ratings.map(x => x.user).distinct
+   val user_set = preprocessed_groupby_user.keySet
 
-   val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v)).distinct
+   val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v))
+
+   //val groupby_user = preprocessed_ratings.groupBy(_.user)
    
-   user_pairs.map(x => (x, adjustedCosine(preprocessed_ratings, x._1, x._2))).toMap
+   user_pairs.map(x => (x, adjustedCosine(preprocessed_groupby_user, x._1, x._2))).toMap
   }
 
   /**
     * Computes the user-specific weighted sum deviation using the cosine similarity
     *
-    * @param standardized_ratings
     * @param cosine_similarities
     * @param usr the user
     * @param itm the item
     * @return the user-specific weighted sum deviation of item itm for user usr
     */
-  def computeRiCosine(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
+  def computeRiCosine(cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
     
-    val ratings_i = standardized_ratings.filter(x => x.item == itm)
+    val ratings_i = standardized_groupby_item.getOrElse(itm, Array[Rating]())
     
     val similarities = ratings_i.map(x => {
       if (x.user == usr) (x.user, 1.0)
@@ -467,12 +472,11 @@ package object predictions
     */
   def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
 
-
     (u: Int, i: Int) =>  {
 
       users_avg.get(u) match {
         case Some(x) => {
-          val ri = computeRiCosine(standardized_ratings, similarities_cosine, u, i)
+          val ri = computeRiCosine(similarities_cosine, u, i)
           x + ri * scale(x + ri, x)
         }
         case None => global_avg
@@ -533,28 +537,25 @@ package object predictions
     */
   def jaccardSimilarityAllUsers(preprocessed_ratings: Array[Rating]): Map[(Int, Int), Double] = {
  
-    val user_set = preprocessed_ratings.map(x => x.user).distinct
+    val user_set = preprocessed_groupby_user.keySet
 
-    val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v)).distinct
-
-    val moviesmap = mapmovies(preprocessed_ratings)
+    val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v))
     
-    user_pairs.map(x => (x, jaccard(moviesmap(x._1).toSet, moviesmap(x._2).toSet))).toMap
+    user_pairs.map(x => (x, jaccard(preprocessed_groupby_user(x._1).map(_.item).toSet, preprocessed_groupby_user(x._1).map(_.item).toSet))).toMap
   }
 
   
   /**
     * Computes the user-specific weighted sum deviation using the jaccard similarity
     *
-    * @param standardized_ratings
     * @param jaccard_similarities
     * @param usr the user
     * @param itm the item
     * @return the user-specific weighted sum deviation of item itm for user usr
     */
-  def computeRiJaccard(standardized_ratings: Array[Rating], jaccard_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
+  def computeRiJaccard(jaccard_similarities: Map[(Int, Int), Double], usr: Int, itm: Int): Double = {
     
-    val ratings_i = standardized_ratings.filter(x => x.item == itm)
+    val ratings_i = standardized_groupby_item.getOrElse(itm, Array[Rating]())
     
     val similarities = ratings_i.map(x => {
       if (x.user == usr) (x.user, 1.0)
@@ -588,7 +589,7 @@ package object predictions
         case None => global_avg
       }
 
-      val ri = computeRiJaccard(standardized_ratings, jaccard_Map, u1, u2)
+      val ri = computeRiJaccard(jaccard_Map, u1, u2)
       ru + ri * scale(ru + ri, ru)
     }
   }
@@ -597,9 +598,9 @@ package object predictions
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
   
   def computeUserSimilarities(ratings: Array[Rating]): Map[Int,Array[(Int, Double)]] = {
-    val user_set = ratings.map(x => x.user).distinct
+    val user_set = preprocessed_groupby_user.keySet
     user_set.map(x => {
-      (x , (for (u <- user_set if (u != x)) yield (u, if (x < u) similarities_cosine((x, u)) else similarities_cosine((u, x)))).sortBy(-_._2))
+      (x , (for (u <- user_set if (u != x)) yield (u, if (x < u) similarities_cosine((x, u)) else similarities_cosine((u, x)))).toArray.sortBy(-_._2))
     }).toMap
   }
   /**
@@ -623,7 +624,7 @@ package object predictions
               val k_user_similar_map = k_user_similarities(u).toMap
 
               // Ratings of item i by k similar users
-              val rating_i_k_users = standardized_ratings.filter(x => (x.item == i) && (k_user_similar_map.keySet.contains(x.user)))
+              val rating_i_k_users = standardized_groupby_item.getOrElse(i, Array[Rating]()).filter(x => k_user_similar_map.keySet.contains(x.user))
               
               // Keep among the k similar users those who have rated i
               val k_users_rating_i = rating_i_k_users.map(x => x.user).distinct.map(x => (x, k_user_similar_map(x))).toMap

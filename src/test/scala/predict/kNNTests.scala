@@ -62,13 +62,13 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
     val predictor_10NN = predictor_allNN(10)
 
      //Similarity between user 1 and itself
-    assert(within(adjustedCosine(preprocessed_ratings, 1, 1), 0.0, 0.0001))
+    assert(within(adjustedCosine(preprocessed_groupby_user, 1, 1), 0.0, 0.0001))
  
      // Similarity between user 1 and 864
-     assert(within(adjustedCosine(preprocessed_ratings, 1, 864), 0.2423, 0.0001))
+     assert(within(adjustedCosine(preprocessed_groupby_user, 1, 864), 0.2423, 0.0001))
 
      // Similarity between user 1 and 886
-     assert(within(adjustedCosine(preprocessed_ratings, 1, 886), 0.2140, 0.0001))
+     assert(within(adjustedCosine(preprocessed_groupby_user, 1, 886), 0.2140, 0.0001))
 
      // Prediction user 1 and item 1
      assert(within(predictor_10NN(1, 1), 4.3190, 0.0001))

@@ -46,6 +46,8 @@ object Personalized extends App {
   users_avg = computeUsersAvg(train)
   standardized_ratings = standardizeRatings(train, users_avg)
   preprocessed_ratings = preprocessRatings(standardized_ratings)
+  preprocessed_groupby_user = preprocessed_ratings.groupBy(_.user)
+  standardized_groupby_item = standardized_ratings.groupBy(_.item)
   similarities_uniform = computeSimilaritiesUniform(train)
   similarities_cosine = computeCosine(preprocessed_ratings)
 
@@ -56,7 +58,7 @@ object Personalized extends App {
   val P11 = predictor_uniform(1, 1)
   val P12 = MAE(test, predictor_uniform)
 
-  val P21 = adjustedCosine(preprocessed_ratings, 1, 2)
+  val P21 = adjustedCosine(preprocessed_groupby_user, 1, 2)
   val P22 = predictor_cosine(1, 1)
 
   println("Computing MAE")

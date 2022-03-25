@@ -64,9 +64,9 @@ object kNN extends App {
   val predictor_allNN = predictorAllNN(train)
   val predictor_10NN = predictor_allNN(10)
 
-  val N11 = adjustedCosine(preprocessed_ratings, 1, 1)
-  val N12 = adjustedCosine(preprocessed_ratings, 1, 864)
-  val N13 = adjustedCosine(preprocessed_ratings, 1, 886)
+  val N11 = adjustedCosine(preprocessed_groupby_user, 1, 1)
+  val N12 = adjustedCosine(preprocessed_groupby_user, 1, 864)
+  val N13 = adjustedCosine(preprocessed_groupby_user, 1, 886)
   val N14 = predictor_10NN(1, 1)
 
 
