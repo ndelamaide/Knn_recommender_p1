@@ -21,7 +21,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    val test2Path = "data/ml-100k/u2.test"
    var train2 : Array[shared.predictions.Rating] = null
    var test2 : Array[shared.predictions.Rating] = null
-   val predictor_allNN = predictorAllNN(train2)
+   
 
   // var adjustedCosine_ : Map[Int, Map[Int, Double]] = null
 
@@ -40,7 +40,6 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
       
    }
 
-   
    // All the functions definitions for the tests below (and the tests in other suites) 
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
 
@@ -51,6 +50,8 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    test("kNN predictor with k=10") { 
      // Create predictor on train2
+    val predictor_allNN = predictorAllNN(train2)
+
     val predictor_10NN = predictor_allNN(10)
 
     // Necessary to compute similarities
@@ -77,12 +78,13 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    test("kNN Mae") {
      // Compute MAE for k around the baseline MAE
     
-    
-    val predictor_52NN = predictorAllNN(train2)(52)
+    //val predictor_allNN = predictorAllNN(train2)
+    val predictor_allNN = predictorAllNN(train2)
+    val predictor_52NN = predictor_allNN(52)
     val MAEKNN52 = MAE(test2, predictor_52NN)
     assert(within(MAEKNN52, 0.7610, 0.0001))
 
-    val predictor_53NN = predictorAllNN(train2)(53)
+    val predictor_53NN = predictor_allNN(53)
     val MAEKNN53 = MAE(test2, predictor_53NN)
     assert(within(MAEKNN53, 0.7601, 0.0001))
 
