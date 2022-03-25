@@ -100,10 +100,12 @@ object Baseline extends App {
   items_avg = computeItemsAvg(train)
   standardized_ratings = standardizeRatings(train, users_avg)
   global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
-
+  
+  val predGA = predictorGlobalAvg(train)
   val predUA = predictorUserAvg(train)
   val predIA = predictorItemAvg(train)
   val predBa = predictorRating(train)
+  
 
   val B11 = global_avg
   val B12 = predUA(1, -1)
