@@ -416,8 +416,11 @@ package object predictions
     * @return the cosine similarity between the two users
     */
   def adjustedCosine(groupby_user: Map[Int,Array[Rating]], u: Int, v: Int): Double = {
-    val ratings_u_v = groupby_user(u) ++ groupby_user(v)
-    ratings_u_v.groupBy(_.item).filter(x => x._2.length == 2).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+    if (u == v) 1.0
+    else {
+      val ratings_u_v = groupby_user(u) ++ groupby_user(v)
+      ratings_u_v.groupBy(_.item).filter(x => x._2.length == 2).mapValues(x => x.foldLeft(1.0)((mult, rating) => mult * rating.rating)).values.sum
+    }
   }
 
   /**
