@@ -42,18 +42,28 @@ object Baseline extends App {
   val test = load(spark, conf.test(), conf.separator()).collect()
 
   val MeasurementsGlobalAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
     val predGA = predictorGlobalAvg(train)
     MAE(test, predGA)
   }))
+
   val MeasurementsUserAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
+    users_avg = computeUsersAvg(train)
     val predUA = predictorUserAvg(train)
     MAE(test, predUA)
   }))
   val MeasurementsItemAvgMae= (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
+    users_avg = computeUsersAvg(train)
+    items_avg = computeItemsAvg(train)
     val predIA = predictorItemAvg(train)
     MAE(test, predIA)
   }))
   val MeasurementsBaselineMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
+    users_avg = computeUsersAvg(train)
+    global_avg_devs = computeItemsGlobalDev(train, users_avg)
     val predBa = predictorRating(train)
     MAE(test, predBa)
   }))
@@ -62,7 +72,6 @@ object Baseline extends App {
   val timingsUserAvgMae = MeasurementsUserAvgMae.map(t => t._2) // Retrieve the timing measurements
   val timingsItemAvgMae = MeasurementsItemAvgMae.map(t => t._2) // Retrieve the timing measurements
   val timingsBaselineMae = MeasurementsBaselineMae.map(t => t._2) // Retrieve the timing measurements
-
 
 
   // Save answers as JSON
@@ -74,18 +83,18 @@ object Baseline extends App {
       } finally{ f.close }
   }
 
-  val global_avg = predictorGlobalAvg(train)(-1, -1)
+  global_avg = computeGlobalAvg(train)
+  users_avg = computeUsersAvg(train)
+  items_avg = computeItemsAvg(train)
+  global_avg_devs = computeItemsGlobalDev(train, users_avg)
 
   val B11 = global_avg
   val B12 = predictorUserAvg(train)(1, -1)
   val B13 = predictorItemAvg(train)(-1, 1)
 
-  val users_avg = computeUsersAvg(train)
+  standardized_ratings = standardizeRatings(train, users_avg)
 
-  val standardized_ratings = standardizeRatings(train, users_avg)
-  val items_global_dev = computeItemsGlobalDev(train, users_avg)
-
-  val B14 = items_global_dev.getOrElse(1, 0.0)
+  val B14 = global_avg_devs.getOrElse(1, 0.0)
   val B15 = predictorRating(train)(1, 1)
 
   val B21 = mean(MeasurementsGlobalAvgMae.map(x => x._1))
