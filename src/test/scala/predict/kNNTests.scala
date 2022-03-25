@@ -40,6 +40,8 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        users_avg = computeUsersAvg(train2)
        standardized_ratings = standardizeRatings(train2, users_avg)
        preprocessed_ratings = preprocessRatings(standardized_ratings)
+       preprocessed_groupby_user = preprocessed_ratings.groupBy(_.user)
+       standardized_groupby_item = standardized_ratings.groupBy(_.item)
        similarities_cosine = computeCosine(preprocessed_ratings)
        user_similarities = computeUserSimilarities(train2)    
    }

@@ -43,7 +43,6 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
       standardized_groupby_item = standardized_ratings.groupBy(_.item)
       similarities_uniform = computeSimilaritiesUniform(train2)
       similarities_cosine = computeCosine(preprocessed_ratings)
-
    }
 
    // All the functions definitions for the tests below (and the tests in other suites) 
