@@ -544,7 +544,7 @@ package object predictions
 
     val user_pairs = (for(u <- user_set; v <- user_set if u < v) yield (u, v))
     
-    user_pairs.map(x => (x, jaccard(preprocessed_groupby_user(x._1).map(_.item).toSet, preprocessed_groupby_user(x._1).map(_.item).toSet))).toMap
+    user_pairs.map(x => (x, jaccard(preprocessed_groupby_user(x._1).map(_.item).toSet, preprocessed_groupby_user(x._2).map(_.item).toSet))).toMap
   }
 
   

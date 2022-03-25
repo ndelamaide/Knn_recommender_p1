@@ -36,7 +36,7 @@ object Baseline extends App {
   var conf = new Conf(args) 
   // For these questions, data is collected in a scala Array 
   // to not depend on Spark
-  if (conf.train() != "data/ml-25m/r2.train"){
+  if (conf.train() contains "100"){
     println("Loading training data from: " + conf.train()) 
     val train = load(spark, conf.train(), conf.separator()).collect()
     println("Loading test data from: " + conf.test()) 
