@@ -633,38 +633,7 @@ package object predictions
   
 
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
-  
-    /**
-    * Computes the user-specific weighted-sum deviation using only the k-nearest neighboors
-    *
-    * @param standardized_ratings
-    * @param cosine_similarities
-    * @param usr the user
-    * @param itm the item
-    * @param k the k-nearest neighboors to consider
-    * @return the user-specific weighted-sum deviation for item itm and user usr
-    */
-  def computeRikNN(standardized_ratings: Array[Rating], cosine_similarities: Map[(Int, Int), Double], usr: Int, itm: Int, k: Int): Double = {
     
-    val ratings_i = standardized_ratings.filter(x => x.item == itm)
-    
-    // Don't compute self-similarity
-    val similarities = ratings_i.map(x => cosine_similarities.get(if (x.user < usr) (x.user, usr) else (usr, x.user)) match {
-        case Some(y) => (x.user, y)
-        case None => (x.user, 0.0)
-    }).sortBy(_._2)(Ordering[Double].reverse).slice(0, k).toMap
-
-    val numerator = if (ratings_i.isEmpty) 0.0 else ratings_i.map(x => similarities.get(x.user) match {
-      case Some(y) => y * x.rating
-      case None => 0.0 
-    }).sum
-
-    val denominator = if (similarities.isEmpty) 0.0 else similarities.mapValues(x => scala.math.abs(x)).values.sum
-
-    if (denominator == 0.0) 0.0 else numerator / denominator
-  }
-
-  
   /**
     * Predictor for any k-nearest neighboors
     *
@@ -730,8 +699,6 @@ package object predictions
       val movies_not_rated = ratings.filter(x => x.user != usr).map(x => x.item).distinct
 
       val preds = movies_not_rated.map(x => (x, predictor(usr, x))).sortBy(x => (-x._2, x._1))
-
-      println("preds", preds.mkString(" "))
       
       preds.slice(0, n)
   }
