@@ -194,20 +194,20 @@ object Baseline extends App {
           ),
           "B.3" -> ujson.Obj(
             "1.GlobalAvg" -> ujson.Obj(
-              "average (ms)" -> ujson.Num(3270.9205946666675), // Datatype of answer: Double
-              "stddev (ms)" -> ujson.Num(2652.240646221322) // Datatype of answer: Double
+              "average (ms)" -> ujson.Num(0.0), // Datatype of answer: Double
+              "stddev (ms)" -> ujson.Num(0.0) // Datatype of answer: Double
             ),
             "2.UserAvg" -> ujson.Obj(
-              "average (ms)" -> ujson.Num(8645.894690333333), // Datatype of answer: Double
-              "stddev (ms)" -> ujson.Num(1061.0864143562492) // Datatype of answer: Double
+              "average (ms)" -> ujson.Num(0.0), // Datatype of answer: Double
+              "stddev (ms)" -> ujson.Num(0.0) // Datatype of answer: Double
             ),
             "3.ItemAvg" -> ujson.Obj(
-              "average (ms)" -> ujson.Num(1970836.1833046668), // Datatype of answer: Double
-              "stddev (ms)" -> ujson.Num(1038903.8325842797) // Datatype of answer: Double
+              "average (ms)" -> ujson.Num(0.0), // Datatype of answer: Double
+              "stddev (ms)" -> ujson.Num(0.0) // Datatype of answer: Double
             ),
             "4.Baseline" -> ujson.Obj(
-              "average (ms)" -> ujson.Num(261469.95269900002), // Datatype of answer: Double
-              "stddev (ms)" -> ujson.Num(4388.225817631215) // Datatype of answer: Double
+              "average (ms)" -> ujson.Num(0.0), // Datatype of answer: Double
+              "stddev (ms)" -> ujson.Num(0.0) // Datatype of answer: Double
             )
           )
         )
