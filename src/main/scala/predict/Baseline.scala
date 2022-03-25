@@ -43,30 +43,40 @@ object Baseline extends App {
   val test = load(spark, conf.test(), conf.separator()).collect()
 
   val MeasurementsGlobalAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    global_avg = computeGlobalAvg(train)
-    val predGA = predictorGlobalAvg(train)
-    MAE(test, predGA)
+    // global_avg = computeGlobalAvg(train)
+    // val predGA = predictorGlobalAvg(train)
+    // MAE(test, predGA)
+    0.0
   }))
 
   val MeasurementsUserAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    global_avg = computeGlobalAvg(train)
-    users_avg = computeUsersAvg(train)
-    val predUA = predictorUserAvg(train)
-    MAE(test, predUA)
+    // global_avg = computeGlobalAvg(train)
+    // users_avg = computeUsersAvg(train)
+    // val predUA = predictorUserAvg(train)
+    // MAE(test, predUA)
+    0.0
   }))
   val MeasurementsItemAvgMae= (1 to conf.num_measurements()).map(x => timingInMs(() => {
-    global_avg = computeGlobalAvg(train)
-    users_avg = computeUsersAvg(train)
-    items_avg = computeItemsAvg(train)
-    val predIA = predictorItemAvg(train)
-    MAE(test, predIA)
+    // global_avg = computeGlobalAvg(train)
+    // users_avg = computeUsersAvg(train)
+    // items_avg = computeItemsAvg(train)
+    // val predIA = predictorItemAvg(train)
+    // MAE(test, predIA)
+    0.0
   }))
+
   val MeasurementsBaselineMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    println("glob")
     global_avg = computeGlobalAvg(train)
+    println("u")
     users_avg = computeUsersAvg(train)
+    println("s")
     standardized_ratings = standardizeRatings(train, users_avg)
+    println("dev")
     global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
+    println("pred")
     val predBa = predictorRating(train)
+    println("mae")
     MAE(test, predBa)
   }))
 
@@ -84,31 +94,27 @@ object Baseline extends App {
         f.write(content)
       } finally{ f.close }
   }
-
+  
   global_avg = computeGlobalAvg(train)
   users_avg = computeUsersAvg(train)
   items_avg = computeItemsAvg(train)
   standardized_ratings = standardizeRatings(train, users_avg)
   global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
 
+  val predUA = predictorUserAvg(train)
+  val predIA = predictorItemAvg(train)
+  val predBa = predictorRating(train)
+
   val B11 = global_avg
-  val B12 = predictorUserAvg(train)(1, -1)
-  val B13 = predictorItemAvg(train)(-1, 1)
+  val B12 = predUA(1, -1)
+  val B13 = predIA(-1, 1)
 
   val B14 = global_avg_devs.getOrElse(1, 0.0)
-  val B15 = predictorRating(train)(1, 1)
+  val B15 = predBa(1, 1)
 
-
-  val predGA = predictorGlobalAvg(train) 
   val B21 = MAE(test, predGA)
-
-  val predUA = predictorUserAvg(train)
   val B22 = MAE(test, predUA)
-
-  val predIA = predictorItemAvg(train)
   val B23 = MAE(test, predIA)
-
-  val predBa = predictorRating(train)
   val B24 = MAE(test, predBa)
 
   conf.json.toOption match {
@@ -121,17 +127,17 @@ object Baseline extends App {
           "3.Measurements" -> ujson.Num(conf.num_measurements())
         ),
         "B.1" -> ujson.Obj(
-          "1.GlobalAvg" -> ujson.Num(B11), // Datatype of answer: Double
-          "2.User1Avg" -> ujson.Num(B12),  // Datatype of answer: Double
-          "3.Item1Avg" -> ujson.Num(B13),   // Datatype of answer: Double
-          "4.Item1AvgDev" -> ujson.Num(B14), // Datatype of answer: Double
-          "5.PredUser1Item1" -> ujson.Num(B15) // Datatype of answer: Double
+          "1.GlobalAvg" -> ujson.Num(0.0), // Datatype of answer: Double
+          "2.User1Avg" -> ujson.Num(0.0),  // Datatype of answer: Double
+          "3.Item1Avg" -> ujson.Num(0.0),   // Datatype of answer: Double
+          "4.Item1AvgDev" -> ujson.Num(0.0), // Datatype of answer: Double
+          "5.PredUser1Item1" -> ujson.Num(0.0) // Datatype of answer: Double
         ),
         "B.2" -> ujson.Obj(
-          "1.GlobalAvgMAE" -> ujson.Num(B21), // Datatype of answer: Double
-          "2.UserAvgMAE" -> ujson.Num(B22),  // Datatype of answer: Double
-          "3.ItemAvgMAE" -> ujson.Num(B23),   // Datatype of answer: Double
-          "4.BaselineMAE" -> ujson.Num(B24)   // Datatype of answer: Double
+          "1.GlobalAvgMAE" -> ujson.Num(0.0), // Datatype of answer: Double
+          "2.UserAvgMAE" -> ujson.Num(0.0),  // Datatype of answer: Double
+          "3.ItemAvgMAE" -> ujson.Num(0.0),   // Datatype of answer: Double
+          "4.BaselineMAE" -> ujson.Num(0.0)   // Datatype of answer: Double
         ),
         "B.3" -> ujson.Obj(
           "1.GlobalAvg" -> ujson.Obj(
