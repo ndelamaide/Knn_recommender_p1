@@ -21,6 +21,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    val test2Path = "data/ml-100k/u2.test"
    var train2 : Array[shared.predictions.Rating] = null
    var test2 : Array[shared.predictions.Rating] = null
+   var predictor_allNN : Int => ((Int, Int) => Double) = null
 
   // var adjustedCosine_ : Map[Int, Map[Int, Double]] = null
 
@@ -36,6 +37,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        // to not depend on Spark
        train2 = load(spark, train2Path, separator).collect()
        test2 = load(spark, test2Path, separator).collect()
+       predictor_allNN = predictorAllNN(train2)
       
    }
 
@@ -49,7 +51,6 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    test("kNN predictor with k=10") { 
      // Create predictor on train2
-    val predictor_allNN = predictorAllNN(train2)
 
     val predictor_10NN = predictor_allNN(10)
 
@@ -77,7 +78,6 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    test("kNN Mae") {
      // Compute MAE for k around the baseline MAE
   
-    val predictor_allNN = predictorAllNN(train2)
 
     val predictor_52NN = predictor_allNN(52)
     val MAEKNN52 = MAE(test2, predictor_52NN)

@@ -22,7 +22,11 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
    var data : Array[shared.predictions.Rating] = null
    var personal : Array[shared.predictions.Rating] = null
    var train : Array[shared.predictions.Rating] = null
-   var predictor : (Int, Int) => Double = null
+   //var predictor : (Int, Int) => Double = null
+   var train2 : Array[Rating] = null
+
+   var predictor_allNN : Int => ((Int, Int) => Double) = null
+   var predictor_300NN : (Int, Int) => Double = null
 
    override def beforeAll {
      Logger.getLogger("org").setLevel(Level.OFF)
@@ -48,7 +52,11 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
      }).filter(r => r.rating != 0).collect()
 
      // TODO: Create predictor
-     predictor = predictorAllNN(data ++ personal)(300)
+     //predictor = predictorAllNN(data ++ personal)(300)
+     train2 = data ++ personal
+     predictor_allNN = predictorAllNN(train2)
+     predictor_300NN = predictor_allNN(300)
+
    }
 
 
@@ -57,18 +65,10 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
    //
    test("Prediction for user 1 of item 1") {
-    val train2 = data ++ personal
-
-    val predictor_allNN = predictorAllNN(train2)
-    val predictor_300NN = predictor_allNN(300)
     assert(within(predictor_300NN(1, 1), 4.1321, 0.0001))
    }
 
    test("Top 3 recommendations for user 944") {
-     val train2 = data ++ personal
-
-     val predictor_allNN = predictorAllNN(train2)
-     val predictor_300NN = predictor_allNN(300)
      val recommendations = recommendMovies(train2, predictor_300NN, 944, 3).toList
      assert(recommendations(0)._1 == 119)
      assert(within(recommendations(0)._2, 5.0, 0.0001))

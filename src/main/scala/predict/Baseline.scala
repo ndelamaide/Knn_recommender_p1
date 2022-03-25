@@ -88,13 +88,18 @@ object Baseline extends App {
   val B14 = items_global_dev.getOrElse(1, 0.0)
   val B15 = predictorRating(train)(1, 1)
 
-  val B21 = mean(MeasurementsGlobalAvgMae.map(x => x._1))
 
-  val B22 = mean(MeasurementsUserAvgMae.map(x => x._1))
+  val predGA = predictorGlobalAvg(train) 
+  val B21 = MAE(test, predGA)
 
-  val B23 = mean(MeasurementsItemAvgMae.map(x => x._1))
-  val B24 = mean(MeasurementsBaselineMae.map(x => x._1))
+  val predUA = predictorUserAvg(train)
+  val B22 = MAE(test, predUA)
 
+  val predIA = predictorItemAvg(train)
+  val B23 = MAE(test, predIA)
+
+  val predBa = predictorRating(train)
+  val B24 = MAE(test, predBa)
   
   conf.json.toOption match {
     case None => ; 
