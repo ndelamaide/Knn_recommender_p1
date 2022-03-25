@@ -36,7 +36,7 @@ object Baseline extends App {
   var conf = new Conf(args) 
   // For these questions, data is collected in a scala Array 
   // to not depend on Spark
-  if (conf.train() != "data/ml-25m/r2.train"){
+  if (conf.train() != "data/ml-25/r2.train"){
     println("Loading training data from: " + conf.train()) 
     val train = load(spark, conf.train(), conf.separator()).collect()
     println("Loading test data from: " + conf.test()) 
@@ -87,13 +87,12 @@ object Baseline extends App {
     global_avg = computeGlobalAvg(train)
     users_avg = computeUsersAvg(train)
     items_avg = computeItemsAvg(train)
-    global_avg_devs = computeItemsGlobalDev(train, users_avg)
+    standardized_ratings = standardizeRatings(train, users_avg)
+    global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
 
     val B11 = global_avg
     val B12 = predictorUserAvg(train)(1, -1)
     val B13 = predictorItemAvg(train)(-1, 1)
-
-    standardized_ratings = standardizeRatings(train, users_avg)
 
     val B14 = global_avg_devs.getOrElse(1, 0.0)
     val B15 = predictorRating(train)(1, 1)

@@ -79,7 +79,8 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
 
     global_avg = computeGlobalAvg(train2)
     users_avg = computeUsersAvg(train2)
-    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
+    standardized_ratings = standardizeRatings(train2, users_avg)
+    global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
 
     val item1_avg_dev = global_avg_devs(1)
 
@@ -90,7 +91,8 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
 
     global_avg = computeGlobalAvg(train2)
     users_avg = computeUsersAvg(train2)
-    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
+    standardized_ratings = standardizeRatings(train2, users_avg)
+    global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
 
     val predictor = predictorRating(train2)
     val prediction_user1_item1 = predictor(1, 1)
@@ -108,7 +110,8 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
     global_avg = computeGlobalAvg(train2)
     users_avg = computeUsersAvg(train2)
     items_avg = computeItemsAvg(train2)
-    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
+    standardized_ratings = standardizeRatings(train2, users_avg)
+    global_avg_devs = computeItemsGlobalDev(standardized_ratings, users_avg)
 
     val predictor_global_avg = predictorGlobalAvg(train2)
     val predictor_user_avg = predictorUserAvg(train2)

@@ -87,7 +87,7 @@ package object predictions
     * @return Map with key-value pairs (item, avg-rating)
     */
   def computeItemsAvg(ratings: Array[Rating]): Map[Int, Double] = {
-    ratings.map(x => (x.item, x.rating)).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
+    ratings.groupBy(_.item).mapValues(x => mean(x.map(y => y.rating)))
   }
 
   /**
@@ -97,8 +97,8 @@ package object predictions
     * @param users_avg dictionary of user avegage ratings (user, avg-rating)
     * @return Map with key-value pairs (item, global average dev)
     */
-  def computeItemsGlobalDev(ratings: Array[Rating], users_avg: Map[Int, Double]): Map[Int, Double] = {
-    ratings.map(x => (x.item, standardize(x.rating, users_avg(x.user)))).groupBy(_._1).mapValues(x => mean(x.map(y => y._2)))
+  def computeItemsGlobalDev(standardized_ratings: Array[Rating], users_avg: Map[Int, Double]): Map[Int, Double] = {
+    standardized_ratings.groupBy(_.item).mapValues(x => mean(x.map(y => y.rating)))
   }
   
   /** 
@@ -136,8 +136,6 @@ package object predictions
   var user_similarities: Map[Int,Array[(Int, Double)]] = null
   var preprocessed_groupby_user: Map[Int,Array[Rating]] = null
   var standardized_groupby_item: Map[Int,Array[Rating]] = null
-
-
 
   /*----------------------------------------Baseline----------------------------------------------------------*/
   
