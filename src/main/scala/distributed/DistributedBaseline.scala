@@ -58,8 +58,8 @@ object DistributedBaseline extends App {
   val D12 = predictor_user_avg(1, -1) // User 1 average
   val D13 = predictor_item_avg(-1, 1) // Item 1 average
 
-  //val users_avg = computeUsersAvg(train)
-  val D14 = 0.0//computeItemsGlobalDev(train, users_avg)(1)
+  val users_avg = computeUsersAvg(train)
+  val D14 = computeItemsGlobalDev(train, users_avg).getOrElse(1, 0.0)
 
   val D15 = predictor_rating(1, 1) // Pred rating for user 1 item 1
   val D16 = MAE(test, predictor_rating) //MAE

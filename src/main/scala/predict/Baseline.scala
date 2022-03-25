@@ -44,7 +44,6 @@ object Baseline extends App {
   val MeasurementsGlobalAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
     val predGA = predictorGlobalAvg(train)
     MAE(test, predGA)
-    
   }))
   val MeasurementsUserAvgMae = (1 to conf.num_measurements()).map(x => timingInMs(() => {
     val predUA = predictorUserAvg(train)
@@ -58,11 +57,11 @@ object Baseline extends App {
     val predBa = predictorRating(train)
     MAE(test, predBa)
   }))
+
   val timingsGlobalAvgMae = MeasurementsGlobalAvgMae.map(t => t._2) // Retrieve the timing measurements
   val timingsUserAvgMae = MeasurementsUserAvgMae.map(t => t._2) // Retrieve the timing measurements
   val timingsItemAvgMae = MeasurementsItemAvgMae.map(t => t._2) // Retrieve the timing measurements
   val timingsBaselineMae = MeasurementsBaselineMae.map(t => t._2) // Retrieve the timing measurements
-
 
 
 
@@ -76,33 +75,26 @@ object Baseline extends App {
   }
 
 
-  var GlobalAvg= predictorGlobalAvg(train)
+  //var GlobalAvg= predictorGlobalAvg(train)
 
-  
+  val B11 = 0.0//GlobalAvg(-1, -1)
+  val B12 = 0.0//predictorUserAvg(train)(1, -1)
+  val B13 = 0.0//predictorItemAvg(train)(-1, 1)
 
-  val B11 = predictorGlobalAvg(train)(-1, -1)
-  val B12 = predictorUserAvg(train)(1, -1)
-  val B13 = predictorItemAvg(train)(-1, 1)
+  //val users_avg = computeUsersAvg(train)
 
-  val users_avg = computeUsersAvg(train)
+  // val standardized_ratings = standardizeRatings(train, users_avg)
+  // val items_global_dev = computeItemsGlobalDev(train, users_avg)
 
-  val standardized_ratings = standardizeRatings(train, users_avg)
-  val items_global_dev = computeItemsGlobalDev(train, users_avg)
+  val B14 = 0.0 //items_global_dev.getOrElse(1, 0.0)
+  val B15 = 0.0//predictorRating(train)(1, 1)
 
-  val B14 = items_global_dev(1)
-  val B15 = predictorRating(train)(1, 1)
+  val B21 = mean(MeasurementsGlobalAvgMae.map(x => x._1))
 
-  val predGA = predictorGlobalAvg(train)
-  val B21 = MAE(test, predGA)
+  val B22 = mean(MeasurementsUserAvgMae.map(x => x._1))
 
-  val predUA = predictorUserAvg(train)
-  val B22 = MAE(test, predUA)
-
-  val predIA = predictorItemAvg(train)
-  val B23 = MAE(test, predIA)
-
-  val predBa = predictorRating(train)
-  val B24 =  MAE(test, predBa)
+  val B23 = mean(MeasurementsItemAvgMae.map(x => x._1))
+  val B24 = mean(MeasurementsBaselineMae.map(x => x._1))
 
   
   conf.json.toOption match {

@@ -671,57 +671,6 @@ package object predictions
     * @param ratings
     * @return a predictor for any k
     */
-  // def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
-
-  //   val global_avg = predictorGlobalAvg(ratings)(-1,-1)
-
-  //   val users_avg = computeUsersAvg(ratings)
-
-  //   val standardized_ratings = standardizeRatings(ratings, users_avg)
-
-  //   val preprocessed_ratings =  preprocessRatings(standardized_ratings)
-
-  //   val user_set = preprocessed_ratings.map(x => x.user).distinct
-
-  //   val user_pairs_cosine = for(u <- user_set; v <- user_set if u != v) yield (u, (v, adjustedCosine(standardized_ratings, u, v)))
-    
-  //   (k: Int) => {
-
-  //     val user_other_similarities = user_pairs_cosine.groupBy(_._1).mapValues(x => x.map(y => y._2).sortBy(-_._2).zipWithIndex.map(y => if (y._2 < k) y._1 else (y._1._1, 0.0)))
-
-  //     println("K", k)
-      
-  //       (u: Int, i: Int) =>  {
-
-  //       users_avg.get(u) match {
-  //         case Some(ru) => {
-            
-  //           val k_similarities = user_other_similarities(u).filter(x => x._2 != 0.0).toMap
-
-  //           if (k_similarities.isEmpty) ru else {
-
-  //             val items_i_k_similar = preprocessed_ratings.filter(x => (x.item == i) && k_similarities.isDefinedAt(x.user))
-
-  //             val numerator = items_i_k_similar.map(x => x.rating * k_similarities(x.user)).sum
-  //             val denominator = k_similarities.mapValues(x => scala.math.abs(x)).values.sum
-
-  //             val ri = if (denominator == 0.0) 0.0 else numerator / denominator
-
-  //             ru + ri * scale(ru + ri, ru)
-  //           }          
-  //         }
-  //         case None => global_avg
-  //       }
-  //     }
-  //   }
-  // }
-
-  /**
-    * Predictor for any k-nearest neighboors
-    *
-    * @param ratings
-    * @return a predictor for any k
-    */
   def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
 
     val global_avg = predictorGlobalAvg(ratings)(-1,-1)
@@ -732,17 +681,45 @@ package object predictions
 
     val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
+    val user_set = ratings.map(x => x.user).distinct
+
     val cosine_similarities = computeCosine(preprocessed_ratings)
 
-    k: Int => (u: Int, i: Int) =>  {
+    val user_similarities = user_set.map(x => {
+      (x , (for (u <- user_set if (u != x)) yield (u, if (x < u) cosine_similarities((x, u)) else cosine_similarities((u, x)))).sortBy(-_._2))
+    }).toMap
+    
+    (k: Int) => {
 
-      users_avg.get(u) match {
-        case Some(x) => {
-          val ri = computeRikNN(standardized_ratings, cosine_similarities, u, i, k)
-          x + ri * scale(x + ri, x)
+      val k_user_similarities = user_similarities.mapValues(x => x.slice(0, k))
+      
+        (u: Int, i: Int) =>  {
+
+          users_avg.get(u) match {
+            case Some(ru) => {
+
+              // Similarity values of k similar users to u
+              val k_user_similar_map = k_user_similarities(u).toMap
+
+              // Ratings of item i by k similar users
+              val rating_i_k_users = standardized_ratings.filter(x => (x.item == i) && (k_user_similar_map.keySet.contains(x.user)))
+              
+              // Keep among the k similar users those who have rated i
+              val k_users_rating_i = rating_i_k_users.map(x => x.user).distinct.map(x => (x, k_user_similar_map(x))).toMap
+
+              val numerator = if (rating_i_k_users.isEmpty) 0.0 else rating_i_k_users.map(x => x.rating * k_users_rating_i(x.user)).sum
+              val denominator = if (rating_i_k_users.isEmpty) 0.0 else k_users_rating_i.mapValues(x => scala.math.abs(x)).values.sum
+
+              val ri = if (denominator == 0.0) 0.0 else numerator / denominator
+
+              ru + ri * scale(ru + ri, ru)
+
+            }
+
+            case None => global_avg
+          }
+            
         }
-        case None => global_avg
-      }
     }
   }
 
