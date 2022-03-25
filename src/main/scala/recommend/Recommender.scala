@@ -54,7 +54,14 @@ object Recommender extends App {
   }).collect().toMap
 
   val train = data ++ personal
-
+  
+  global_avg = computeGlobalAvg(train)
+  users_avg = computeUsersAvg(train)
+  standardized_ratings = standardizeRatings(train, users_avg)
+  preprocessed_ratings = preprocessRatings(standardized_ratings)
+  similarities_cosine = computeCosine(preprocessed_ratings)
+  user_similarities = computeUserSimilarities(train)
+  
   val predictor_allNN = predictorAllNN(train)
   val predictor_300NN = predictor_allNN(300)
 

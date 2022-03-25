@@ -41,18 +41,28 @@ object kNN extends App {
 
 
   val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
+    users_avg = computeUsersAvg(train)
+    standardized_ratings = standardizeRatings(train, users_avg)
+    preprocessed_ratings = preprocessRatings(standardized_ratings)
+    similarities_cosine = computeCosine(preprocessed_ratings)
+    user_similarities = computeUserSimilarities(train)
+
     val predictor_allNN = predictorAllNN(train)
     val predictor_300NN = predictor_allNN(300)
     MAE(test, predictor_300NN)       // Output answer as last value
   }))
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
 
+  global_avg = computeGlobalAvg(train)
+  users_avg = computeUsersAvg(train)
+  standardized_ratings = standardizeRatings(train, users_avg)
+  preprocessed_ratings = preprocessRatings(standardized_ratings)
+  similarities_cosine = computeCosine(preprocessed_ratings)
+  user_similarities = computeUserSimilarities(train)
+
   val predictor_allNN = predictorAllNN(train)
   val predictor_10NN = predictor_allNN(10)
-
-  val users_avg = computeUsersAvg(train)
-  val standardized_ratings = standardizeRatings(train, users_avg)
-  val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
   val N11 = adjustedCosine(preprocessed_ratings, 1, 1)
   val N12 = adjustedCosine(preprocessed_ratings, 1, 864)

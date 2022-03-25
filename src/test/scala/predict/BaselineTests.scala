@@ -45,16 +45,21 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
    // src/main/scala/predict/Baseline.scala.
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
+
+    // global_avg = computeGlobalAvg(train2)
+    // users_avg = computeUsersAvg(train2)
+    // items_avg = computeItemsAvg(train2)
+    // global_avg_devs = computeItemsGlobalDev(train2, users_avg)
    
    test("Compute global average") {
-
-    val predictor = predictorGlobalAvg(train2)
-    val global_avg = predictor(1,1)
-
+    global_avg = computeGlobalAvg(train2)
     assert(within(global_avg, 3.5264, 0.0001)) 
    }
 
    test("Compute user 1 average") {
+
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
 
     val predictor = predictorUserAvg(train2)
     val user1_avg = predictor(1, 1)
@@ -64,6 +69,10 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("Compute item 1 average") {
 
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
+    items_avg = computeItemsAvg(train2)
+
     val predictor = predictorItemAvg(train2)
     val item1_avg = predictor(1, 1)
 
@@ -72,14 +81,20 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("Compute item 1 average deviation") { 
 
-    val users_avg = computeUsersAvg(train2)
-    val items_gloval_avg_dev = computeItemsGlobalDev(train2, users_avg)
-    val item1_avg_dev = items_gloval_avg_dev(1)
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
+    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
+
+    val item1_avg_dev = global_avg_devs(1)
 
     assert(within(item1_avg_dev, 0.3027, 0.0001)) 
    }
 
    test("Compute baseline prediction for user 1 on item 1") {
+
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
+    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
 
     val predictor = predictorRating(train2)
     val prediction_user1_item1 = predictor(1, 1)
@@ -93,6 +108,11 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
    // 2. There should be a single reusable function to compute the MAE on the test set, given a predictor;
    // 3. There should be invocations of both to show they work on the following datasets.
   test("MAE on all four non-personalized methods on data/ml-100k/u2.base and data/ml-100k/u2.test") {
+
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
+    items_avg = computeItemsAvg(train2)
+    global_avg_devs = computeItemsGlobalDev(train2, users_avg)
 
     val predictor_global_avg = predictorGlobalAvg(train2)
     val predictor_user_avg = predictorUserAvg(train2)

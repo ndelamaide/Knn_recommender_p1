@@ -64,7 +64,7 @@ package object predictions
     * Computes global average
     * 
     * @param ratings
-    * @return Map with key-value pairs (user, avg-rating)
+    * @return Global average
     */
   def computeGlobalAvg(ratings: Array[Rating]): Double = {
     mean(ratings.map(x => x.rating))
@@ -125,7 +125,7 @@ package object predictions
   
   /*----------------------------------------Global variables----------------------------------------------------------*/
 
-  var global_avg: Double = null
+  var global_avg: Double = 0.0
   var users_avg: Map[Int,Double] = null
   var items_avg: Map[Int, Double] = null
   var global_avg_devs: Map[Int, Double] = null
@@ -234,6 +234,16 @@ package object predictions
       (rating - userAvg) / scale(rating, userAvg)
   }
   
+   /** 
+    * Computes global average
+    * 
+    * @param ratings
+    * @return Global average
+    */
+  def computeGlobalAvg(ratings: RDD[Rating]): Double = {
+    ratings.map(x => x.rating).mean()
+  }
+
   /** 
     * Computes average rating of every user in ratings
     * 
@@ -308,7 +318,7 @@ package object predictions
 
     (u: Int, i: Int) => users_avg.get(u) match {
       case Some(x) => x
-      case None => global_avg(u, i)
+      case None => global_avg
     }
   }
   
@@ -655,7 +665,13 @@ package object predictions
   
 
   /*---------------------------------------Neighbourhood-based---------------------------------------------------------*/
-    
+  
+  def computeUserSimilarities(ratings: Array[Rating]): Map[Int,Array[(Int, Double)]] = {
+    val user_set = ratings.map(x => x.user).distinct
+    user_set.map(x => {
+      (x , (for (u <- user_set if (u != x)) yield (u, if (x < u) similarities_cosine((x, u)) else similarities_cosine((u, x)))).sortBy(-_._2))
+    }).toMap
+  }
   /**
     * Predictor for any k-nearest neighboors
     *

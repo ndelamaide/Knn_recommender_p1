@@ -43,7 +43,14 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
    // src/main/scala/predict/Baseline.scala.
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
+
    test("Test uniform unary similarities") { 
+
+    global_avg = computeGlobalAvg(train2)
+    users_avg = computeUsersAvg(train2)
+    standardized_ratings = standardizeRatings(train2, users_avg)
+    similarities_uniform = computeSimilaritiesUniform(train2)
+
      // Create predictor with uniform similarities
      val predictor_uniform = predictorUniform(train2)
      
@@ -55,12 +62,15 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
    } 
 
    test("Test ajusted cosine similarity") { 
+
+     global_avg = computeGlobalAvg(train2)
+     users_avg = computeUsersAvg(train2)
+     standardized_ratings = standardizeRatings(train2, users_avg)
+     preprocessed_ratings = preprocessRatings(standardized_ratings)
+     similarities_cosine = computeCosine(preprocessed_ratings)
+
      // Create predictor with adjusted cosine similarities
      val predictor_cosine = predictorCosine(train2)
-
-     val users_avg = computeUsersAvg(train2)
-     val standardized_ratings = standardizeRatings(train2, users_avg)
-     val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
      // Similarity between user 1 and user 2
      assert(within(adjustedCosine(preprocessed_ratings, 1, 2),  0.0730, 0.0001))

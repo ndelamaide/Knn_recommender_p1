@@ -22,7 +22,7 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
    var data : Array[shared.predictions.Rating] = null
    var personal : Array[shared.predictions.Rating] = null
    var train : Array[shared.predictions.Rating] = null
-   //var predictor : (Int, Int) => Double = null
+   var predictor : (Int, Int) => Double = null
    var train2 : Array[Rating] = null
 
    var predictor_allNN : Int => ((Int, Int) => Double) = null
@@ -54,9 +54,16 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
      // TODO: Create predictor
      //predictor = predictorAllNN(data ++ personal)(300)
      train2 = data ++ personal
+
+     // Pre-compute global variables
+     global_avg = computeGlobalAvg(train2)
+     users_avg = computeUsersAvg(train2)
+     standardized_ratings = standardizeRatings(train2, users_avg)
+     preprocessed_ratings = preprocessRatings(standardized_ratings)
+     similarities_cosine = computeCosine(preprocessed_ratings)
+     user_similarities = computeUserSimilarities(train2)
      predictor_allNN = predictorAllNN(train2)
      predictor_300NN = predictor_allNN(300)
-
    }
 
 

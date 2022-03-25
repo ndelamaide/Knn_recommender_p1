@@ -42,16 +42,19 @@ object Personalized extends App {
   // Compute here
   // import scala.util.Random
 
+  global_avg = computeGlobalAvg(train)
+  users_avg = computeUsersAvg(train)
+  standardized_ratings = standardizeRatings(train, users_avg)
+  preprocessed_ratings = preprocessRatings(standardized_ratings)
+  similarities_uniform = computeSimilaritiesUniform(train)
+  similarities_cosine = computeCosine(preprocessed_ratings)
+
   val predictor_uniform = predictorUniform(train)
 
   val predictor_cosine = predictorCosine(train)
 
   val P11 = predictor_uniform(1, 1)
   val P12 = MAE(test, predictor_uniform)
-
-  val users_avg = computeUsersAvg(train)
-  val standardized_ratings = standardizeRatings(train, users_avg)
-  val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
   val P21 = adjustedCosine(preprocessed_ratings, 1, 2)
   val P22 = predictor_cosine(1, 1)
@@ -61,7 +64,6 @@ object Personalized extends App {
 
   println("Starting Jaccard")
   //val jaccard_Map = 0.0//jaccardSimilarityAllUsers(train)
-
 
   val P31 = jaccardpred12(train)//jaccard_Map(1,2)
 

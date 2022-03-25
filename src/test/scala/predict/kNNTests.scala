@@ -21,9 +21,6 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    val test2Path = "data/ml-100k/u2.test"
    var train2 : Array[shared.predictions.Rating] = null
    var test2 : Array[shared.predictions.Rating] = null
-   var predictor_allNN : Int => ((Int, Int) => Double) = null
-
-  // var adjustedCosine_ : Map[Int, Map[Int, Double]] = null
 
    override def beforeAll {
        Logger.getLogger("org").setLevel(Level.OFF)
@@ -36,9 +33,15 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        // For these questions, train and test are collected in a scala Array
        // to not depend on Spark
        train2 = load(spark, train2Path, separator).collect()
-       test2 = load(spark, test2Path, separator).collect()
-       predictor_allNN = predictorAllNN(train2)
-      
+       test2 = load(spark, test2Path, separator).collect()  
+
+       // Pre-compute these global variables
+       global_avg = computeGlobalAvg(train2)
+       users_avg = computeUsersAvg(train2)
+       standardized_ratings = standardizeRatings(train2, users_avg)
+       preprocessed_ratings = preprocessRatings(standardized_ratings)
+       similarities_cosine = computeCosine(preprocessed_ratings)
+       user_similarities = computeUserSimilarities(train2)    
    }
 
    // All the functions definitions for the tests below (and the tests in other suites) 
@@ -49,15 +52,14 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    // src/main/scala/predict/Baseline.scala.
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
+
+   var predictor_allNN = predictorAllNN(train2)
+
+
    test("kNN predictor with k=10") { 
      // Create predictor on train2
 
     val predictor_10NN = predictor_allNN(10)
-
-    // Necessary to compute similarities
-    val users_avg = computeUsersAvg(train2)
-    val standardized_ratings = standardizeRatings(train2, users_avg)
-    val preprocessed_ratings =  preprocessRatings(standardized_ratings)
 
      //Similarity between user 1 and itself
     assert(within(adjustedCosine(preprocessed_ratings, 1, 1), 0.0, 0.0001))

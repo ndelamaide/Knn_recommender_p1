@@ -43,11 +43,20 @@ object DistributedBaseline extends App {
   val test = load(spark, conf.test(), conf.separator())
 
   val measurements = (1 to conf.num_measurements()).map(x => timingInMs(() => {
+    global_avg = computeGlobalAvg(train)
+    users_avg = computeUsersAvg(train)
+    global_avg_devs = computeItemsGlobalDev(train, users_avg)
+
     val predictor_rating = predictorRating(train)
     MAE(test, predictor_rating)
   }))
 
   val timings = measurements.map(t => t._2) // Retrieve the timing measurements
+
+  global_avg = computeGlobalAvg(train)
+  users_avg = computeUsersAvg(train)
+  items_avg = computeItemsAvg(train)
+  global_avg_devs = computeItemsGlobalDev(train, users_avg)
   
   val predictor_global_avg = predictorGlobalAvg(train)
   val predictor_user_avg = predictorUserAvg(train)
@@ -58,7 +67,6 @@ object DistributedBaseline extends App {
   val D12 = predictor_user_avg(1, -1) // User 1 average
   val D13 = predictor_item_avg(-1, 1) // Item 1 average
 
-  val users_avg = computeUsersAvg(train)
   val D14 = computeItemsGlobalDev(train, users_avg).getOrElse(1, 0.0)
 
   val D15 = predictor_rating(1, 1) // Pred rating for user 1 item 1
