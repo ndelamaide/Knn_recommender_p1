@@ -42,9 +42,6 @@ object Personalized extends App {
   // Compute here
   // import scala.util.Random
 
-  // val n = 1000
-  // val train_sample = train.toList.take(n).toArray
-
   val predictor_uniform = predictorUniform(train)
 
   val predictor_cosine = predictorCosine(train)

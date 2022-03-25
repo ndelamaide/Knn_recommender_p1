@@ -38,6 +38,8 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        test2 = load(spark, test2Path, separator).collect()
    }
 
+   val predictor_allNN = predictorAllNN(train2)
+
    // All the functions definitions for the tests below (and the tests in other suites) 
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
 
@@ -48,7 +50,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
    test("kNN predictor with k=10") { 
      // Create predictor on train2
-    val predictor_10NN = predictorAllNN(train2)(10)
+    val predictor_10NN = predictor_allNN(10)
 
     // Necessary to compute similarities
     val users_avg = computeUsersAvg(train2)
@@ -73,8 +75,11 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("kNN Mae") {
      // Compute MAE for k around the baseline MAE
+     val predictor_50NN = predictor_allNN(50)
+
+     val MAE_knn = MAE(test2, predictor_50NN)
      
      // Ensure the MAEs are indeed lower/higher than baseline
-     assert(1.0 < 0.0)
+     assert(0.7604 < MAE_knn)
    }
 }

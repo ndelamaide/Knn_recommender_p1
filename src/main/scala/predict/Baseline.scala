@@ -74,20 +74,19 @@ object Baseline extends App {
       } finally{ f.close }
   }
 
+  val global_avg = predictorGlobalAvg(train)(-1, -1)
 
-  //var GlobalAvg= predictorGlobalAvg(train)
+  val B11 = global_avg
+  val B12 = predictorUserAvg(train)(1, -1)
+  val B13 = predictorItemAvg(train)(-1, 1)
 
-  val B11 = 0.0//GlobalAvg(-1, -1)
-  val B12 = 0.0//predictorUserAvg(train)(1, -1)
-  val B13 = 0.0//predictorItemAvg(train)(-1, 1)
+  val users_avg = computeUsersAvg(train)
 
-  //val users_avg = computeUsersAvg(train)
+  val standardized_ratings = standardizeRatings(train, users_avg)
+  val items_global_dev = computeItemsGlobalDev(train, users_avg)
 
-  // val standardized_ratings = standardizeRatings(train, users_avg)
-  // val items_global_dev = computeItemsGlobalDev(train, users_avg)
-
-  val B14 = 0.0 //items_global_dev.getOrElse(1, 0.0)
-  val B15 = 0.0//predictorRating(train)(1, 1)
+  val B14 = items_global_dev.getOrElse(1, 0.0)
+  val B15 = predictorRating(train)(1, 1)
 
   val B21 = mean(MeasurementsGlobalAvgMae.map(x => x._1))
 
