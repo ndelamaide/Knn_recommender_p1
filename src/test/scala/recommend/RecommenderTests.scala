@@ -67,7 +67,6 @@ class RecommenderTests extends AnyFunSuite with BeforeAndAfterAll {
    }
 
 
-
    // All the functions definitions for the tests below (and the tests in other suites) 
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
    //

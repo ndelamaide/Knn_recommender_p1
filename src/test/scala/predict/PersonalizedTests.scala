@@ -33,6 +33,15 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
        // to not depend on Spark
        train2 = load(spark, train2Path, separator).collect()
        test2 = load(spark, test2Path, separator).collect()
+
+       //Pre-compute global variables
+      global_avg = computeGlobalAvg(train2)
+      users_avg = computeUsersAvg(train2)
+      standardized_ratings = standardizeRatings(train2, users_avg)
+      preprocessed_ratings = preprocessRatings(standardized_ratings)
+      similarities_uniform = computeSimilaritiesUniform(train2)
+      similarities_cosine = computeCosine(preprocessed_ratings)
+
    }
 
    // All the functions definitions for the tests below (and the tests in other suites) 
@@ -46,10 +55,7 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("Test uniform unary similarities") { 
 
-    global_avg = computeGlobalAvg(train2)
-    users_avg = computeUsersAvg(train2)
-    standardized_ratings = standardizeRatings(train2, users_avg)
-    similarities_uniform = computeSimilaritiesUniform(train2)
+    // Global variables already computed above
 
      // Create predictor with uniform similarities
      val predictor_uniform = predictorUniform(train2)
@@ -63,11 +69,7 @@ class PersonalizedTests extends AnyFunSuite with BeforeAndAfterAll {
 
    test("Test ajusted cosine similarity") { 
 
-     global_avg = computeGlobalAvg(train2)
-     users_avg = computeUsersAvg(train2)
-     standardized_ratings = standardizeRatings(train2, users_avg)
-     preprocessed_ratings = preprocessRatings(standardized_ratings)
-     similarities_cosine = computeCosine(preprocessed_ratings)
+    // Global variables already computed above
 
      // Create predictor with adjusted cosine similarities
      val predictor_cosine = predictorCosine(train2)

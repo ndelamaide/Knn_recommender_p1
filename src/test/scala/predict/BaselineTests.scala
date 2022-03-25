@@ -46,10 +46,6 @@ class BaselineTests extends AnyFunSuite with BeforeAndAfterAll {
    // Add assertions with the answer you expect from your code, up to the 4th
    // decimal after the (floating) point, on data/ml-100k/u2.base (as loaded above).
 
-    // global_avg = computeGlobalAvg(train2)
-    // users_avg = computeUsersAvg(train2)
-    // items_avg = computeItemsAvg(train2)
-    // global_avg_devs = computeItemsGlobalDev(train2, users_avg)
    
    test("Compute global average") {
     global_avg = computeGlobalAvg(train2)

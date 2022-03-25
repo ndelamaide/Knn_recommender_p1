@@ -156,12 +156,6 @@ package object predictions
     * @return a predictor
     */
   def predictorUserAvg(ratings: Array[Rating]): (Int, Int) => Double = {
-    
-    // Pre-compute global avg
-    //val global_avg = predictorGlobalAvg(ratings)
-    
-    // Pre-compute users avg
-    //val users_avg = computeUsersAvg(ratings)
 
     (u: Int, i: Int) => users_avg.get(u) match {
       case Some(x) => x
@@ -176,15 +170,6 @@ package object predictions
     * @return a predictor
     */
   def predictorItemAvg(ratings: Array[Rating]): (Int, Int) => Double = {
-  
-    // Pre-compute global avg
-    //val global_avg = predictorGlobalAvg(ratings)(1, 1)
-
-    // Pre-compute users avg
-    //val users_avg = computeUsersAvg(ratings)
-
-    // Pre-compute items avg
-    //val items_avg = computeItemsAvg(ratings)
 
     (u: Int, i: Int) => items_avg.get(i) match {
       case Some(x) => x
@@ -202,14 +187,6 @@ package object predictions
     * @return a predictor
     */
   def predictorRating(ratings: Array[Rating]): (Int, Int) => Double = {
-
-    //val global_avg = predictorGlobalAvg(ratings)(1,1)
-
-    // Pre compute user avgs
-    //val users_avg = computeUsersAvg(ratings)
-    
-    // Pre compute global avg devs
-    //val global_avg_devs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
 
@@ -309,12 +286,6 @@ package object predictions
     * @return a predictor
     */
   def predictorUserAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
-    
-    // Pre-compute global avg
-    //val global_avg = predictorGlobalAvg(ratings)
-    
-    // Pre-compute users avg
-    //val users_avg = computeUsersAvg(ratings)
 
     (u: Int, i: Int) => users_avg.get(u) match {
       case Some(x) => x
@@ -330,14 +301,6 @@ package object predictions
     */
   def predictorItemAvg(ratings: RDD[Rating]): (Int, Int) => Double = {
   
-    // Pre-compute global avg
-    //val global_avg = predictorGlobalAvg(ratings)(1, 1)
-
-    // Pre-compute users avg
-    //val users_avg = computeUsersAvg(ratings)
-
-    // Pre-compute items avg
-    //val items_avg = computeItemsAvg(ratings)
 
     (u: Int, i: Int) => items_avg.get(i) match {
       case Some(x) => x
@@ -355,14 +318,6 @@ package object predictions
     * @return a predictor
     */
   def predictorRating(ratings: RDD[Rating]): (Int, Int) => Double = {
-
-    //val global_avg = predictorGlobalAvg(ratings)(1,1)
-
-    // Pre compute user avgs
-    //val users_avg = computeUsersAvg(ratings)
-    
-    // Pre compute global avg devs
-    //val global_avg_devs = computeItemsGlobalDev(ratings, users_avg)
 
     (u: Int, i: Int) =>  {
       users_avg.get(u) match {
@@ -419,14 +374,6 @@ package object predictions
     * @return a predictor
     */
   def predictorUniform(ratings: Array[Rating]): (Int, Int) => Double = {
-
-    //val global_avg = predictorGlobalAvg(ratings)(-1,-1)
-
-    //val users_avg = computeUsersAvg(ratings)
-
-    //val standardized_ratings = standardizeRatings(ratings, users_avg)
-
-    //val similarities = computeSimilaritiesUniform(ratings)
 
     (u: Int, i: Int) =>  {
 
@@ -520,15 +467,6 @@ package object predictions
     */
   def predictorCosine(ratings: Array[Rating]): (Int, Int) => Double = {
 
-    //val global_avg = predictorGlobalAvg(ratings)(-1,-1)
-
-    //val users_avg = computeUsersAvg(ratings)
-
-    //val standardized_ratings = standardizeRatings(ratings, users_avg)
-
-    //val preprocessed_ratings =  preprocessRatings(standardized_ratings)
-
-    //val cosine_similarities = computeCosine(preprocessed_ratings)
 
     (u: Int, i: Int) =>  {
 
@@ -642,14 +580,6 @@ package object predictions
   */
   def predictorJaccard(ratings: Array[Rating]): (Int, Int) => Double = {
 
-    //val global_avg = predictorGlobalAvg(ratings)(-1,-1)
-
-    //val users_avg = computeUsersAvg(ratings)
-
-    //val standardized_ratings = standardizeRatings(ratings, users_avg)
-
-    //val preprocessed_ratings =  preprocessRatings(standardized_ratings)
-
     val jaccard_Map = jaccardSimilarityAllUsers(preprocessed_ratings)
 
     (u1: Int, u2: Int) =>  {
@@ -680,22 +610,6 @@ package object predictions
     */
   def predictorAllNN(ratings: Array[Rating]): Int => (Int, Int) => Double = {
 
-    //val global_avg = predictorGlobalAvg(ratings)(-1,-1)
-
-    //val users_avg = computeUsersAvg(ratings)
-
-    //val standardized_ratings = standardizeRatings(ratings, users_avg)
-
-    //val preprocessed_ratings =  preprocessRatings(standardized_ratings)
-
-    //val user_set = ratings.map(x => x.user).distinct
-
-    //val cosine_similarities = computeCosine(preprocessed_ratings)
-
-    // val user_similarities = user_set.map(x => {
-    //   (x , (for (u <- user_set if (u != x)) yield (u, if (x < u) similarities_cosine((x, u)) else similarities_cosine((u, x)))).sortBy(-_._2))
-    // }).toMap
-    
     (k: Int) => {
 
       val k_user_similarities = user_similarities.mapValues(x => x.slice(0, k))
