@@ -21,6 +21,7 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
    val test2Path = "data/ml-100k/u2.test"
    var train2 : Array[shared.predictions.Rating] = null
    var test2 : Array[shared.predictions.Rating] = null
+   val predictor_allNN = predictorAllNN(train2)
 
   // var adjustedCosine_ : Map[Int, Map[Int, Double]] = null
 
@@ -36,11 +37,10 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
        // to not depend on Spark
        train2 = load(spark, train2Path, separator).collect()
        test2 = load(spark, test2Path, separator).collect()
+      
    }
 
-
-   val predictor_allNN = predictorAllNN(train2)
-
+   
    // All the functions definitions for the tests below (and the tests in other suites) 
    // should be in a single library, 'src/main/scala/shared/predictions.scala'.
 
@@ -68,14 +68,15 @@ class kNNTests extends AnyFunSuite with BeforeAndAfterAll {
      assert(within(adjustedCosine(preprocessed_ratings, 1, 886), 0.2140, 0.0001))
 
      // Prediction user 1 and item 1
-     assert(within(predictor_10NN(1, 1), 4.3622, 0.0001))
+     assert(within(predictor_10NN(1, 1), 4.3190, 0.0001))
 
      // MAE on test2 
-     assert(within(MAE(test2, predictor_10NN), 0.7451, 0.0001))
+     assert(within(MAE(test2, predictor_10NN), 0.8287, 0.0001))
    } 
 
    test("kNN Mae") {
      // Compute MAE for k around the baseline MAE
+    
     
     val predictor_52NN = predictorAllNN(train2)(52)
     val MAEKNN52 = MAE(test2, predictor_52NN)
